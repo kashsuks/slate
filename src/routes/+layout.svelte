@@ -1,8 +1,10 @@
 <script lang="ts">
   import '../app.css'
   import { onMount } from 'svelte'
-  import { goto } from '$app/navigation'
+  import { goto, page } from '$app/navigation'
   import { isOnboardingComplete, loadTools } from '$lib/stores/config'
+
+  let ready = false
 
   onMount(async () => {
     const done = await isOnboardingComplete()
@@ -10,8 +12,26 @@
       goto('/onboarding')
     } else {
       await loadTools()
-    } 
+    }
+    ready = true
   })
+
+  $: isOnboarding = $page.url.pathname.startsWith('/onboarding')
 </script>
 
-<slot />
+{#if isOnboarding}
+  <slot />
+{:else if ready}
+  <div class="app-shell">
+    <slot />
+  </div>
+{/if}
+
+<style>
+.app-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--canvas);
+}
+</style>
