@@ -15,7 +15,10 @@ fn main() {
             app.manage(AppState { db: Mutex::new(conn) });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![]) // should call the frontent once written
+        .invoke_handler(tauri::generate_handler![
+            tauri_app_lib::commands::config::get_config,
+            tauri_app_lib::commands::config::set_config,
+        ]) // should call the frontent once written
         .run(tauri::generate_context!())
         .expect("error running app");
 }

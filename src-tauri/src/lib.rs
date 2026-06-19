@@ -1,3 +1,5 @@
+pub mod commands;
+
 use rusqlite::Connection;
 use std::sync::Mutex;
 
