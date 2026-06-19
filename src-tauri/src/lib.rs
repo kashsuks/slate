@@ -18,6 +18,13 @@ pub fn init_db(conn: &Connection) {
 
         CREATE TABLE IF NOT EXISTS boards (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            position INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS columns (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             board_id INTEGER NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
             name TEXT NOT NULL,
             position INTEGER NOT NULL DEFAULT 0,

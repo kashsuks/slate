@@ -1,7 +1,8 @@
 <script lang="ts">
   import '../app.css'
   import { onMount } from 'svelte'
-  import { goto, page } from '$app/navigation'
+  import { goto } from '$app/navigation'
+  import { page } from '$app/stores'
   import { isOnboardingComplete, loadTools } from '$lib/stores/config'
 
   let ready = false
@@ -25,6 +26,8 @@
   <div class="app-shell">
     <slot />
   </div>
+{:else}
+  <div></div>
 {/if}
 
 <style>

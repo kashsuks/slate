@@ -19,7 +19,7 @@
     </button>
   </div>
 
-  <div class="button">
+  <div class="bottom">
     <button class="icon-btn" title="Settings">
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
         <circle cx="9" cy="9" r="2.5" stroke="currentColor" stroke-width="1.4"/>
