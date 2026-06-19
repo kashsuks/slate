@@ -20,7 +20,7 @@ export async function isOnboardingComplete(): Promise<boolean> {
     return val === 'true'
 }
 
-export async function completeOnboard(tools: EnabledTools) {
+export async function completeOnboarding(tools: EnabledTools) {
     await invoke('set_config', { key: 'onboarding_complete', value: 'true' })
     await invoke('set_config', { key: 'enabled_tools', value: JSON.stringify(tools) })
     enabledTools.set(tools)
