@@ -18,6 +18,19 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             tauri_app_lib::commands::config::get_config,
             tauri_app_lib::commands::config::set_config,
+            tauri_app_lib::commands::boards::get_boards,
+            tauri_app_lib::commands::boards::create_board,
+            tauri_app_lib::commands::boards::rename_board,
+            tauri_app_lib::commands::boards::delete_board,
+            tauri_app_lib::commands::columns::get_columns,
+            tauri_app_lib::commands::columns::create_column,
+            tauri_app_lib::commands::columns::rename_column,
+            tauri_app_lib::commands::columns::delete_column,
+            tauri_app_lib::commands::cards::get_cards,
+            tauri_app_lib::commands::cards::create_card,
+            tauri_app_lib::commands::cards::update_card,
+            tauri_app_lib::commands::cards::delete_card,
+            tauri_app_lib::commands::cards::move_card,
         ]) // should call the frontent once written
         .run(tauri::generate_context!())
         .expect("error running app");
