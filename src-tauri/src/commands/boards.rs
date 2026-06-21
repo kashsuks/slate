@@ -42,16 +42,16 @@ pub fn get_boards(state: State<AppState>) -> Vec<Board> {
 }
 
 #[tauri::command]
-pub fn create_board(name: String, state: State<AppState>) -> Option<Board> {
+pub fn create_board(name: String, state: State<AppState>) -> Result<Board, String> {
     let db = state.db.lock().unwrap();
     let position: i64 = db
         .query_row("SELECT COALESCE(MAX(position) + 1, 0) FROM boards", [], |r| r.get(0))
         .unwrap_or(0);
     db.execute(
         "INSERT INTO boards (name, position) VALUES (?1, ?2)",
-        [&name, &position.to_string()],
-    ).ok()?;
-    let id = db.last_insert_rowid(); // should fetch and assign the id for db
+        rusqlite::params![&name, position],
+    ).map_err(|e| e.to_string())?;
+    let id = db.last_insert_rowid();
     db.query_row(
         "SELECT id, name, position, created_at FROM boards WHERE id = ?1",
         [id],
@@ -61,7 +61,7 @@ pub fn create_board(name: String, state: State<AppState>) -> Option<Board> {
             position: row.get(2)?,
             created_at: row.get(3)?,
         }),
-    ).ok()
+    ).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

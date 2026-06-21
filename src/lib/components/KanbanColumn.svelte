@@ -9,6 +9,10 @@
   let adding = false
   let newTitle = ''
 
+  function focusInput(node: HTMLElement) {
+    node.focus()
+  }
+
   async function submitCard() {
     if (!newTitle.trim()) {
       adding = false
@@ -35,13 +39,13 @@
     {#if adding}
       <div class="add-card-form">
         <input
-	  type="text"
-	  bind:value={newTitle}
-	  placeholder="Card title"
-	  on:keydown={(e) => e.key === 'Enter' && submitCard()}
-	  on:blur={submitCard}
-	  autofocus
-	/>
+          type="text"
+          bind:value={newTitle}
+          placeholder="Card title"
+          on:keydown={(e) => e.key === 'Enter' && submitCard()}
+          on:blur={submitCard}
+          use:focusInput
+        />
       </div>
     {/if}
   </div>
@@ -88,7 +92,7 @@
   font-family: var(--font-mono);
 }
 
-.card-list {
+.cards-list {
   display: flex;
   flex-direction: column;
   gap: 6px;

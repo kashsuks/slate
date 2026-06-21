@@ -42,4 +42,9 @@ pub fn init_db(conn: &Connection) {
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
     ").expect("DB init failed");
+
+    // Migrations: add columns that may be missing from older databases
+    let _ = conn.execute_batch(
+        "ALTER TABLE boards ADD COLUMN created_at TEXT NOT NULL DEFAULT (datetime('now'));"
+    );
 }

@@ -1,12 +1,16 @@
 <script lang="ts">
+  import type { Board } from "$lib/types";
+
   export let boards: { id: number; name: string }[] = []
   export let activeBoardId: number | null = null
+  export let onSelect: (id: number) => void = () => {}
+  export let onNewBoard: () => void = () => {}
 </script>
 
 <aside class="sidebar">
   <div class="section-header">
     <span class="section-label">Boards</span>
-    <button class="add-btn" title="New board">
+    <button class="add-btn" title="New board" on:click={onNewBoard}>
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
         <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
       </svg>
@@ -14,12 +18,12 @@
   </div>
 
   <ul class="board-list">
-    {#each boards as board}
+    {#each boards as board (board.id)}
       <li>
         <button
 	  class="board-item"
 	  class:active={board.id === activeBoardId}
-	  on:click
+	  on:click={() => onSelect(board.id)}
 	>
 	  <span class="board-dot"></span>
 	  {board.name}

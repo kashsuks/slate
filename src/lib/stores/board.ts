@@ -16,11 +16,13 @@ export async function loadBoards() {
 }
 
 export async function createBoard(name: string) {
+  console.log('[createBoard] invoking with name:', name)
   const board = await invoke<Board>('create_board', { name })
-  if (board) {
-    boards.update(b => [...b, board])
-    await selectBoard(board.id)
-  }
+  console.log('[createBoard] result:', board)
+  if (!board) throw new Error('create_board returned null — check Rust logs')
+  boards.update(b => [...b, board])
+  await selectBoard(board.id)
+  console.log('[createBoard] done, activeBoardId:', board.id)
 }
 
 export async function selectBoard(id: number) {
