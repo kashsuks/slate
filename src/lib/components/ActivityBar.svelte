@@ -11,7 +11,7 @@
       title="Kanban"
       on:click
     >
-      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
         <rect x="1.5" y="3" width="5" height="12" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
 	<rect x="9.5" y="3" width="5" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
 	<rect x="1.5" y="3" width="5" height="12" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
@@ -21,7 +21,7 @@
 
   <div class="bottom">
     <button class="icon-btn" title="Settings">
-      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
         <circle cx="9" cy="9" r="2.5" stroke="currentColor" stroke-width="1.4"/>
 	<path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.2 3.211.4 1.4M13.4 13.411.4 1.4M14.8 3.2l-1.4 1.4M4.6 13.4l-1.4 1.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
       </svg>
@@ -31,7 +31,7 @@
 
 <style>
 .activity-bar {
-  width: 48px;
+  width: 60px;
   height: 100vh;
   background: var(--surface);
   border-right: 1px solid var(--border);
@@ -39,7 +39,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 0;
+  padding: 16px 0;
   flex-shrink: 0;
 }
 
@@ -51,24 +51,24 @@
 }
 
 .logo {
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   background: var(--text-1);
   color: #fff;
-  border-radius: 6px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   letter-spacing: -0.02em;
 }
 
 .icon-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
   border: none;
   background: transparent;
   color: var(--text-3);

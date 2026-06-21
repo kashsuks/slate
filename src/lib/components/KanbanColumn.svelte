@@ -60,14 +60,14 @@
 
 <style>
 .column {
-  width: 260px;
+  width: clamp(280px, 22vw, 360px);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   background: var(--canvas);
-  border-radius: 8px;
-  padding: 4px;
+  border-radius: 10px;
+  padding: 6px;
   max-height: 100%;
 }
 
@@ -75,11 +75,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 8px 2px;
+  padding: 8px 10px 4px;
 }
 
 .column-name {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-1);
   text-transform: uppercase;
@@ -95,7 +95,7 @@
 .cards-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   overflow-y: auto;
   padding: 0 2px;
 }

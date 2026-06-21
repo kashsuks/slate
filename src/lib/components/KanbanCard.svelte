@@ -25,13 +25,13 @@
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px 12px;
+  border-radius: 8px;
+  padding: 14px 16px;
   cursor: pointer;
   transition: border-color 120ms, box-shadow 120ms;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .card:hover {
@@ -46,9 +46,9 @@
 }
 
 .title {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-1);
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .due {

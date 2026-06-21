@@ -104,12 +104,12 @@
 }
 
 .board-header {
-  padding: 20px 24px 12px;
+  padding: 28px 32px 16px;
   border-bottom: 1px solid var(--border);
 }
 
 .board-header h1 {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 500;
   color: var(--text-1);
   letter-spacing: -0.01em;
@@ -119,13 +119,14 @@
   flex: 1;
   display: flex;
   align-items: flex-start;
-  gap: 16px;
-  padding: 20px 24px;
+  gap: 20px;
+  padding: 24px 32px;
   overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .new-column-form {
-  width: 260px;
+  width: clamp(280px, 22vw, 360px); 
   flex-shrink: 0;
 }
 
@@ -141,16 +142,16 @@
 }
 
 .add-column-btn {
-  width: 200px;
+  width: 220px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   border: none;
   background: transparent;
   color: var(--text-3);
-  font-size: 13px;
-  padding: 10px 12px;
+  font-size: 14px;
+  padding: 12px 14px;
   border-radius: 8px;
   cursor: pointer;
   transition: background 120ms, color 120ms;

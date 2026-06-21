@@ -37,13 +37,13 @@
 
 <style>
 .sidebar {
-  width: 220px;
+  width: 260px;
   height: 100vh;
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  padding: 16px 0;
+  padding: 20px 0;
   flex-shrink: 0;
   overflow-y: auto;
 }
@@ -94,12 +94,12 @@
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 5px;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 6px;
   border: none;
   background: transparent;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-2);
   cursor: pointer;
   text-align: left;
