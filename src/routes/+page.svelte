@@ -1,45 +1,46 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import ActivityBar from '$lib/components/ActivityBar.svelte'
-  import Sidebar from '$lib/components/Sidebar.svelte'
-  import KanbanColumn from '$lib/components/KanbanColumn.svelte';
-  import NewBoardModal from '$lib/components/NewBoardModal.svelte';
-  import {
-    boards,
-    activeBoardId,
-    columns,
-    cardsByColumn,
-    loadBoards,
-    selectBoard,
-    createColumn
-  } from '$lib/stores/board'
+import { onMount } from 'svelte';
+import { goto } from '$app/navigation'
+import ActivityBar from '$lib/components/ActivityBar.svelte'
+import Sidebar from '$lib/components/Sidebar.svelte'
+import KanbanColumn from '$lib/components/KanbanColumn.svelte';
+import NewBoardModal from '$lib/components/NewBoardModal.svelte';
+import {
+boards,
+activeBoardId,
+columns,
+cardsByColumn,
+loadBoards,
+selectBoard,
+createColumn
+} from '$lib/stores/board'
 
-  let showNewBoard = false
-  let addingColumn = false
-  let newColumnName = ''
+let showNewBoard = false
+let addingColumn = false
+let newColumnName = ''
 
-  function focusInput(node: HTMLElement) {
-    node.focus()
-  }
+function focusInput(node: HTMLElement) {
+node.focus()
+}
 
-  onMount(() => {
-    loadBoards()
-  })
+onMount(() => {
+loadBoards()
+})
 
-  $: activeBoard = $boards.find(b => b.id === $activeBoardId)
+$: activeBoard = $boards.find(b => b.id === $activeBoardId)
 
-  async function submitColumn() {
-    if (!newColumnName.trim() || $activeBoardId === null) {
-      addingColumn = false
-      return
-    }
-    await createColumn($activeBoardId, newColumnName.trim())
-    newColumnName = ''
-    addingColumn = false
-  }
+async function submitColumn() {
+if (!newColumnName.trim() || $activeBoardId === null) {
+addingColumn = false
+return
+}
+await createColumn($activeBoardId, newColumnName.trim())
+newColumnName = ''
+addingColumn = false
+}
 </script>
 
-<ActivityBar active="kanban" />
+<ActivityBar active="kanban" onSettings={() => goto('/settings')} />
 <Sidebar 
   boards={$boards} 
   activeBoardId={$activeBoardId}
