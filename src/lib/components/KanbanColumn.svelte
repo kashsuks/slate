@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Column, Card } from '$lib/types'
   import KanbanCard from './KanbanCard.svelte';
-  import { createCard } from '$lib/stores/board';
+  import { createCard, renameColumn } from '$lib/stores/board';
 
   export let column: Column
   export let cards: Card[] = []
@@ -9,8 +9,29 @@
   let adding = false
   let newTitle = ''
 
-  function focusInput(node: HTMLElement) {
+  let renamingColumn = false
+  let columnDraft = ''
+
+  function startRename() {
+    columnDraft = column.name
+    renamingColumn = true
+  }
+
+  async function commitRename() {
+    renamingColumn = false
+    const trimmed = columnDraft.trim()
+    if (!trimmed || trimmed === column.name) return
+    await renameColumn(column.id, trimmed)
+  }
+
+  function cancelRename() {
+    renamingColumn = false
+    columnDraft = column.name
+  }
+
+  function focusAll(node: HTMLInputElement) {
     node.focus()
+    node.select()
   }
 
   async function submitCard() {
@@ -25,12 +46,27 @@
   }
 </script>
 
+
 <div class="column">
   <div class="column-header">
-    <span class="column-name">{column.name}</span>
+    {#if renamingColumn}
+      <input
+        class="rename-input"
+        bind:value={columnDraft}
+        on:keydown={(e) => {
+	  if (e.key === 'Enter') commitRename()
+	  if (e.key === 'Escape') cancelRename()
+        }}
+        on:blur={commitRename}
+        use:focusAll
+      />
+    {:else}
+      <span class="column-name" on:click={startRename} title="Click to rename">
+        {column.name}
+      </span>
+    {/if}
     <span class="column-count">{cards.length}</span>
   </div>
-
   <div class="cards-list">
     {#each cards as card (card.id)}
       <KanbanCard {card} />
@@ -128,5 +164,33 @@
 .add-card-btn:hover {
   background: var(--surface);
   color: var(--text-1);
+}
+
+.column-name {
+  cursor: text;
+}
+
+.column-name:hover {
+  color: var(--text-1);
+  text-decoration: underline;
+  text-decoration-color: var(--border);
+  text-underline-offset: 3px;
+}
+
+.rename-input {
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-1);
+  background: var(--surface);
+  border: 1px solid var(--text-1);
+  border-radius: 4px;
+  padding: 2px 6px;
+  outline: none;
+  width: 0;
+  flex: 1;
+  min-width: 0;
 }
 </style>

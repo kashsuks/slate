@@ -84,7 +84,7 @@ pub fn update_card(
 ) -> bool {
     let db = state.db.lock().unwrap();
     db.execute(
-        "UPDATE card SET title = ?1, description = ?2, priority = ?3, due_date = ?4, WHERE id = ?5",
+        "UPDATE cards SET title = ?1, description = ?2, priority = ?3, due_date = ?4 WHERE id = ?5",
         rusqlite::params![title, description, priority, due_date, id]
     ).is_ok()
 }
@@ -110,7 +110,7 @@ pub fn move_card(
         rusqlite::params![column_id, position, id],
     ).ok();
     db.execute(
-        "UPDATE cards SET column id = ?1, position = ?2, WHERE id = ?3",
+        "UPDATE cards SET column_id = ?1, position = ?2, WHERE id = ?3",
         rusqlite::params![column_id, position, id],
     ).is_ok()
 }

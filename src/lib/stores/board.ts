@@ -61,3 +61,26 @@ export async function deleteCard(columnId: number, cardId: number) {
     [columnId]: (m[columnId] ?? []).filter(c => c.id !== cardId),
   }))
 }
+
+export async function renameColumn(columnId: number, name: string) {
+  await invoke('rename_column', { id: columnId, name })
+  columns.update(cols =>
+    cols.map(c => c.id === columnId ? {...c, name } : c)
+  )
+}
+
+export async function renameCard(columnId: number, cardId: number, title: string) {
+  await invoke('update_card', {
+    id: cardId,
+    title,
+    description: null,
+    priority: 'none',
+    due_date: null,
+  })
+  cardsByColumn.update(m => ({
+    ...m,
+    [columnId]: (m[columnId] ?? []).map(c =>
+      c.id === cardId ? { ...c, title } : c
+    ),
+  }))
+}
