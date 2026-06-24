@@ -66,20 +66,38 @@ export async function moveCard(
   cardId: number,
   fromColumnId: number,
   toColumnId: number,
-  newIndex: number
+  newIndex: number,
 ) {
-  // update the already applied by the column component
-  // we can do this by just persisting the position
+  // move the card in the store first
+  // so the ui doesnt flicker when db call is happening
+  cardsByColumn.update(m => {
+    const from = (m[fromColumnId] ?? []).filter(c => c.id !== cardId)
+    const card = (m[fromColumnId] ?? []).find(c => c.id === cardId)
+      ?? (m[toColumnId] ?? []).find(c => c.id === cardId)
+    if (!card) return m
+    const to = fromColumnId === toColumnId
+      ? from
+      : [...(m[toColumnId] ?? [])]
+    to.splice(newIndex, 0, {...card, column_id: toColumnId })
+    return {
+      ...m,
+      [fromColumnId]: from,
+      [toColumnId]: to,
+    }
+  })
+
+  // persist to db
   await invoke('move_card', {
     id: cardId,
     columnId: toColumnId,
     position: newIndex,
   })
-  // refetch the affected columns from DB
-  const updatedForm = await invoke<import('$lib/types').Card[]>('get_cards', { columnId: fromColumnId })
+
+  // check with db again to get clean pos
+  const updatedForm = await invoke<Card[]>('get_cards', { columnId: fromColumnId })
   const updatedTo = fromColumnId === toColumnId
     ? updatedForm
-    : await invoke<import('$lib/types').Card[]>('get_cards', { columnId: toColumnId })
+    : await invoke<Card[]>('get_cards', { columnId: toColumnId })
   cardsByColumn.update(m => ({
     ...m,
     [fromColumnId]: updatedForm,

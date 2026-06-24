@@ -97,20 +97,53 @@ pub fn delete_card(id: i64, state: State<AppState>) -> bool {
 
 #[tauri::command]
 pub fn move_card(
-    id: i64, 
+    id: i64,
     column_id: i64,
     position: i64,
     state: State<AppState>
 ) -> bool {
     let db = state.db.lock().unwrap();
-    // shift the cards to the destination 
-    // column to make room
-    db.execute(
-        "UPDATE cards SET position = position + 1 WHERE column_id = ?1 AND position >= ?2 AND id != ?3",
-        rusqlite::params![column_id, position, id],
-    ).ok();
-    db.execute(
-        "UPDATE cards SET column_id = ?1, position = ?2, WHERE id = ?3",
-        rusqlite::params![column_id, position, id],
-    ).is_ok()
+
+    let result = db.query_row(
+        "SELECT column_id, position FROM cards WHERE id = ?1",
+        [id],
+        |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
+    );
+    let (old_column_id, old_position) = match result {
+        Ok(v) => v,
+        Err(_) => return false,
+    };
+
+    if old_column_id == column_id {
+        // Same-column reorder: shift the displaced cards to close/open the gap
+        if old_position < position {
+            db.execute(
+                "UPDATE cards SET position = position - 1 WHERE column_id = ?1 AND position > ?2 AND position <= ?3 AND id != ?4",
+                rusqlite::params![column_id, old_position, position, id],
+            ).ok();
+        } else {
+            db.execute(
+                "UPDATE cards SET position = position + 1 WHERE column_id = ?1 AND position >= ?2 AND position < ?3 AND id != ?4",
+                rusqlite::params![column_id, position, old_position, id],
+            ).ok();
+        }
+        db.execute(
+            "UPDATE cards SET position = ?1 WHERE id = ?2",
+            rusqlite::params![position, id],
+        ).is_ok()
+    } else {
+        // Cross-column move: close gap in source, open gap in destination
+        db.execute(
+            "UPDATE cards SET position = position - 1 WHERE column_id = ?1 AND position > ?2",
+            rusqlite::params![old_column_id, old_position],
+        ).ok();
+        db.execute(
+            "UPDATE cards SET position = position + 1 WHERE column_id = ?1 AND position >= ?2 AND id != ?3",
+            rusqlite::params![column_id, position, id],
+        ).ok();
+        db.execute(
+            "UPDATE cards SET column_id = ?1, position = ?2 WHERE id = ?3",
+            rusqlite::params![column_id, position, id],
+        ).is_ok()
+    }
 }

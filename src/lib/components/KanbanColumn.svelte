@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { Column, Card } from '$lib/types'
   import KanbanCard from './KanbanCard.svelte'
-  import { createCard, renameColumn, moveCard } from '$lib/stores/board'
-  import { dndzone } from 'svelte-dnd-action'
+  import { createCard, renameColumn, moveCard, cardsByColumn } from '$lib/stores/board'
+  import { dndzone, TRIGGERS } from 'svelte-dnd-action'
   import { flip } from 'svelte/animate'
 
   export let column: Column
@@ -14,7 +14,17 @@
   let renamingColumn = false
   let columnDraft = ''
 
-  $: localCards = cards
+  let localCards: Card[] = []
+  let dragging = false
+
+  $: if (!dragging) localCards = cards
+
+  async function submitCard() {
+    if (!newTitle.trim()) { adding = false; return }
+    await createCard(column.id, newTitle.trim())
+    newTitle = ''
+    adding = false
+  }
 
   function startRename() {
     columnDraft = column.name
@@ -22,52 +32,53 @@
   }
 
   async function commitRename() {
+    if (columnDraft.trim() && columnDraft !== column.name) {
+      await renameColumn(column.id, columnDraft.trim())
+    }
     renamingColumn = false
-    const trimmed = columnDraft.trim()
-    if (!trimmed || trimmed === column.name) return
-    await renameColumn(column.id, trimmed)
   }
 
   function cancelRename() {
     renamingColumn = false
-    columnDraft = column.name
+  }
+
+  function focusInput(node: HTMLInputElement) {
+    node.focus()
+    return {}
   }
 
   function focusAll(node: HTMLInputElement) {
     node.focus()
     node.select()
-  }
-
-  async function submitCard() {
-    if (!newTitle.trim()) {
-      adding = false
-      return
-    }
-    await createCard(column.id, newTitle.trim())
-    newTitle = ''
-    adding = false
+    return {}
   }
 
   function handleConsider(e: CustomEvent) {
+    dragging = true
     localCards = e.detail.items
   }
 
   async function handleFinalize(e: CustomEvent) {
     const items: Card[] = e.detail.items
+    const trigger = e.detail.info.trigger
+    const movedId = e.detail.info.id
     localCards = items
 
-    const movedCard = e.detail.info.id
-    const newIndex = items.findIndex((c: Card) => c.id === movedCard)
-
-    let fromColumnId = column.id
-    for (const [colId, colCards] of Object.entries(allCardsByColumn)) {
-      if (colCards.some((c: Card) => c.id === movedCard)) {
-        fromColumnId = Number(colId)
-        break
-      }
+    if (trigger === TRIGGERS.DROPPED_INTO_ANOTHER) {
+      // Update store immediately so the reactive `$: if (!dragging) localCards = cards`
+      // sees the card already removed — otherwise it snaps back before moveCard runs
+      cardsByColumn.update(m => ({ ...m, [column.id]: items }))
+      dragging = false
+      return
     }
 
-    await moveCard(movedCard, fromColumnId, column.id, newIndex)
+    const newIndex = items.findIndex((c: Card) => c.id === movedId)
+    // Use the card's own column_id as source of truth — avoids stale allCardsByColumn lookups
+    const draggedCard = items.find((c: Card) => c.id === movedId)
+    const fromColumnId = draggedCard?.column_id ?? column.id
+
+    await moveCard(movedId, fromColumnId, column.id, newIndex)
+    dragging = false
   }
 </script>
 
