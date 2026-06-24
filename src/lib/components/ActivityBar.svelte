@@ -11,7 +11,7 @@
       class="icon-btn"
       class:active={active === 'kanban' }
       title="Kanban"
-      on:click
+      on:click={onKanban}
     >
       <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
         <rect x="1.5" y="3" width="5" height="12" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
