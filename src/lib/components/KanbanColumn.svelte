@@ -1,16 +1,20 @@
 <script lang="ts">
   import type { Column, Card } from '$lib/types'
-  import KanbanCard from './KanbanCard.svelte';
-  import { createCard, renameColumn } from '$lib/stores/board';
+  import KanbanCard from './KanbanCard.svelte'
+  import { createCard, renameColumn, moveCard } from '$lib/stores/board'
+  import { dndzone } from 'svelte-dnd-action'
+  import { flip } from 'svelte/animate'
 
   export let column: Column
   export let cards: Card[] = []
+  export let allCardsByColumn: Record<number, Card[]> = {}
 
   let adding = false
   let newTitle = ''
-
   let renamingColumn = false
   let columnDraft = ''
+
+  $: localCards = cards
 
   function startRename() {
     columnDraft = column.name
@@ -39,10 +43,31 @@
       adding = false
       return
     }
-
     await createCard(column.id, newTitle.trim())
     newTitle = ''
     adding = false
+  }
+
+  function handleConsider(e: CustomEvent) {
+    localCards = e.detail.items
+  }
+
+  async function handleFinalize(e: CustomEvent) {
+    const items: Card[] = e.detail.items
+    localCards = items
+
+    const movedCard = e.detail.info.id
+    const newIndex = items.findIndex((c: Card) => c.id === movedCard)
+
+    let fromColumnId = column.id
+    for (const [colId, colCards] of Object.entries(allCardsByColumn)) {
+      if (colCards.some((c: Card) => c.id === movedCard)) {
+        fromColumnId = Number(colId)
+        break
+      }
+    }
+
+    await moveCard(movedCard, fromColumnId, column.id, newIndex)
   }
 </script>
 
@@ -67,9 +92,16 @@
     {/if}
     <span class="column-count">{cards.length}</span>
   </div>
-  <div class="cards-list">
-    {#each cards as card (card.id)}
-      <KanbanCard {card} />
+  <div
+    class="cards-list"
+    use:dndzone={{ items: localCards, flipDurationMs: 150, dropTargetStyle: {} }}
+    on:consider={handleConsider}
+    on:finalize={handleFinalize}
+  >
+    {#each localCards as card (card.id)}
+      <div animate:flip={{ duration: 150 }}>
+        <KanbanCard {card} />
+      </div>
     {/each}
 
     {#if adding}
@@ -168,6 +200,14 @@
 
 .column-name {
   cursor: text;
+}
+
+/* ghost card while dragging */
+.cards-list :global([data-is-dnd-shadow-item]) {
+  opacity: 0.4;
+  border: 1px dashed var(--border) !important;
+  background: var(--canvas) !important;
+  box-shadow: none !important;
 }
 
 .column-name:hover {

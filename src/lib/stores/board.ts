@@ -62,6 +62,31 @@ export async function deleteCard(columnId: number, cardId: number) {
   }))
 }
 
+export async function moveCard(
+  cardId: number,
+  fromColumnId: number,
+  toColumnId: number,
+  newIndex: number
+) {
+  // update the already applied by the column component
+  // we can do this by just persisting the position
+  await invoke('move_card', {
+    id: cardId,
+    columnId: toColumnId,
+    position: newIndex,
+  })
+  // refetch the affected columns from DB
+  const updatedForm = await invoke<import('$lib/types').Card[]>('get_cards', { columnId: fromColumnId })
+  const updatedTo = fromColumnId === toColumnId
+    ? updatedForm
+    : await invoke<import('$lib/types').Card[]>('get_cards', { columnId: toColumnId })
+  cardsByColumn.update(m => ({
+    ...m,
+    [fromColumnId]: updatedForm,
+    [toColumnId]: updatedTo,
+  }))
+}
+
 export async function renameColumn(columnId: number, name: string) {
   await invoke('rename_column', { id: columnId, name })
   columns.update(cols =>

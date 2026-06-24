@@ -59,7 +59,11 @@ addingColumn = false
     </div>
     <div class="board-canvas">
       {#each $columns as column (column.id)}
-        <KanbanColumn {column} cards={$cardsByColumn[column.id] ?? []} />
+        <KanbanColumn
+          {column}
+          cards={$cardsByColumn[column.id] ?? []}
+          allCardsByColumn={$cardsByColumn}
+        />
       {/each}
 
       {#if addingColumn}
