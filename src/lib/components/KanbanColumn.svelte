@@ -74,8 +74,13 @@
 
     const newIndex = items.findIndex((c: Card) => c.id === movedId)
     // Use the card's own column_id as source of truth — avoids stale allCardsByColumn lookups
-    const draggedCard = items.find((c: Card) => c.id === movedId)
-    const fromColumnId = draggedCard?.column_id ?? column.id
+    let fromColumnId = column.id
+    for (const [colId, colCards] of Object.entries(allCardsByColumn)) {
+      if (Number(colId) !== column.id && colCards.some((c: Card) => c.id === movedId)) {
+        fromColumnId = Number(colId)
+	break
+      }
+    }
 
     await moveCard(movedId, fromColumnId, column.id, newIndex)
     dragging = false
