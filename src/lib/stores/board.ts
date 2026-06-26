@@ -112,7 +112,28 @@ export async function renameColumn(columnId: number, name: string) {
   )
 }
 
-export async function renameCard(columnId: number, cardId: number, title: string) {
+export async function updateCard(
+  columnId: number,
+  cardId: number,
+  title: string,
+  description: string | null,
+  priority: string,
+  due_date: string | null,
+) {
+  await invoke('update_card', { id: cardId, title, description, priority, dueDate: due_date })
+  cardsByColumn.update(m => ({
+    ...m,
+    [columnId]: (m[columnId] ?? []).map(c =>
+      c.id === cardId ? { ...c, title, description, priority, due_date } : c
+    ),
+  }))
+}
+
+export async function renameCard(
+  columnId: number, 
+  cardId: number, 
+  title: string
+) {
   await invoke('update_card', {
     id: cardId,
     title,
