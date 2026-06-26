@@ -44,7 +44,7 @@
 
 {#if card}
   <!-- backdrop -->
-  <div class="backdrop" on:click={handleClose}</div>
+  <div class="backdrop" on:click={handleClose}></div>
 
   <!-- panel -->
   <aside class="panel">

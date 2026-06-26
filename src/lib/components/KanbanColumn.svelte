@@ -8,6 +8,7 @@
   export let column: Column
   export let cards: Card[] = []
   export let allCardsByColumn: Record<number, Card[]> = {}
+  export let onOpenCard: (card: Card) => void = () => {}
 
   let adding = false
   let newTitle = ''
@@ -116,7 +117,7 @@
   >
     {#each localCards as card (card.id)}
       <div animate:flip={{ duration: 150 }}>
-        <KanbanCard {card} />
+        <KanbanCard {card} onOpen={onOpenCard} />
       </div>
     {/each}
 

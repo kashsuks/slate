@@ -5,6 +5,7 @@ import ActivityBar from '$lib/components/ActivityBar.svelte'
 import Sidebar from '$lib/components/Sidebar.svelte'
 import KanbanColumn from '$lib/components/KanbanColumn.svelte';
 import NewBoardModal from '$lib/components/NewBoardModal.svelte';
+import CardModal from '$lib/components/CardModal.svelte';
 import {
 boards,
 activeBoardId,
@@ -18,6 +19,7 @@ createColumn
 let showNewBoard = false
 let addingColumn = false
 let newColumnName = ''
+let activeCard: import('$lib/types').Card | null = null
 
 function focusInput(node: HTMLElement) {
 node.focus()
@@ -63,6 +65,7 @@ addingColumn = false
           {column}
           cards={$cardsByColumn[column.id] ?? []}
           allCardsByColumn={$cardsByColumn}
+	  onOpenCard={(card) => (activeCard = card)}
         />
       {/each}
 
@@ -90,6 +93,7 @@ addingColumn = false
 </main>
 
 <NewBoardModal bind:open={showNewBoard} />
+<CardModal card={activeCard} onClose={() => (activeCard = null)} />
 
 <style>
 .content {
