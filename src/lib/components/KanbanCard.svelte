@@ -23,7 +23,44 @@
 </div>
 
 <style>
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 120ms, box-shadow 120ms;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.card:hover {
+  border-color: #BBBAB6;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.priority-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.title {
+  font-size: 14px;
+  color: var(--text-1);
+  line-height: 1.45;
+}
+
 .title:hover {
-  color: var(--text-2);
+  text-decoration: underline;
+  text-decoration-color: var(--border);
+  text-underline-offset: 3px;
+}
+
+.due {
+  font-size: 11px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
 }
 </style>
