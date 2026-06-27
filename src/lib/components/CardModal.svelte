@@ -51,7 +51,7 @@
     <div class="panel-header">
       <button class="close-btn" on:click={handleClose} title="Close">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-	  <path d="M3 3110 10M13 3L3 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+	  <path d="M3 3L13 13M13 3L3 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
       </button>
     </div>
@@ -114,28 +114,32 @@
   position: fixed;
   inset: 0;
   z-index: 40;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
 .panel {
   position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 360px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 520px;
+  max-height: 80vh;
   background: var(--surface);
   border-left: 1px solid var(--border);
+  border-radius: 12px;
   z-index: 50;
   display: flex;
   flex-direction: column;
-  box-shadow: -4px 0 24px rgba(0,0,0,0.06);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .panel-header {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: 16px 16px 0;
+  padding: 14px 14px 0;
   flex-shrink: 0;
 }
 
