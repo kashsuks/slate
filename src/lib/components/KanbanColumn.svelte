@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Column, Card } from '$lib/types'
   import KanbanCard from './KanbanCard.svelte'
-  import { createCard, renameColumn, moveCard, cardsByColumn } from '$lib/stores/board'
+  import { createCard, renameColumn, moveCard, deleteColumn, cardsByColumn } from '$lib/stores/board'
   import { dndzone, TRIGGERS } from 'svelte-dnd-action'
   import { flip } from 'svelte/animate'
 
@@ -41,6 +41,15 @@
 
   function cancelRename() {
     renamingColumn = false
+  }
+
+  async function handleDelete() {
+    const hasCards = cards.length > 0
+    if (hasCards) {
+      const ok = confirm(`Delete "${column.name}"? This will also delete its ${cards.length} card${cards.length === 1 ? '' : 's'}.`)
+      if (!ok) return
+    }
+    await deleteColumn(column.id)
   }
 
   function focusInput(node: HTMLInputElement) {
@@ -94,20 +103,27 @@
     {#if renamingColumn}
       <input
         class="rename-input"
-        bind:value={columnDraft}
-        on:keydown={(e) => {
-	  if (e.key === 'Enter') commitRename()
-	  if (e.key === 'Escape') cancelRename()
+	bind:value={columnDraft}
+	on:keydown={(e) => {
+      if (e.key === 'Enter') commitRename()
+      if (e.key === 'Escape') cancelRename()
         }}
-        on:blur={commitRename}
-        use:focusAll
+	on:blur={commitRename}
+	use:focusAll
       />
     {:else}
       <span class="column-name" on:click={startRename} title="Click to rename">
         {column.name}
       </span>
     {/if}
-    <span class="column-count">{cards.length}</span>
+    <div class="column-actions">
+      <span class="column-count">{cards.length}</span>
+      <button class="delete-col-btn" on:click={handleDelete} title="Delete column">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+	  <path d="M2 2L8 8M10 2L2 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+	</svg>
+      </button>
+    </div>
   </div>
   <div
     class="cards-list"
@@ -136,7 +152,7 @@
   </div>
 
   <button class="add-card-btn" on:click={() => (adding = true)}>
-    <svg width="127" height="12" viewBox="0 0 14 14" fill="none">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
       <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
     </svg>
     Add card
@@ -171,10 +187,40 @@
   letter-spacing: 0.04em;
 }
 
+.column-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .column-count {
   font-size: 11px;
   color: var(--text-3);
   font-family: var(--font-mono);
+}
+
+.delete-col-btn {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms, background 120ms, color 120ms;
+}
+
+.column:hover .delete-col-btn {
+  opacity: 1;
+}
+
+.delete-col-btn:hover {
+  background: #FFF0F0;
+  color: #9F2F2D;
 }
 
 .cards-list {

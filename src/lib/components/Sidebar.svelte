@@ -1,10 +1,42 @@
 <script lang="ts">
-  import type { Board } from "$lib/types";
+  import type { Board } from "$lib/types"
+  import ContextMenu from "./ContextMenu.svelte"
+  import { renameBoard, deleteBoard } from "$lib/stores/board"
 
   export let boards: { id: number; name: string }[] = []
   export let activeBoardId: number | null = null
   export let onSelect: (id: number) => void = () => {}
   export let onNewBoard: () => void = () => {}
+
+  let menu: { x: number; y: number; board: Board } | null = null
+  let renamingId: number | null = null
+  let renameDraft = ''
+
+  function openMenu(e: MouseEvent, board: Board) {
+    e.preventDefault()
+    menu = { x: e.clientX, y: e.clientY, board }
+  }
+
+  function startRename(board: Board) {
+    renamingId = board.id
+    renameDraft = board.name
+  }
+
+  async function commitRename() {
+    if (renamingId === null) return
+    const trimmed = renameDraft.trim()
+    if (trimmed) await renameBoard(renamingId, trimmed)
+    renamingId = null
+  }
+
+  function cancelRename() {
+    renamingId = null
+  }
+
+  function focusAll(node: HTMLInputElement) {
+    node.focus()
+    node.select()
+  }
 </script>
 
 <aside class="sidebar">
@@ -20,19 +52,47 @@
   <ul class="board-list">
     {#each boards as board (board.id)}
       <li>
-        <button
-	  class="board-item"
-	  class:active={board.id === activeBoardId}
-	  on:click={() => onSelect(board.id)}
-	>
-	  <span class="board-dot"></span>
-	  {board.name}
-	</button>
+        {#if renamingId === board.id}
+	  <input
+	    class="rename-input"
+	    bind:value={renameDraft}
+	    on:keydown={(e) => {
+	      if (e.key === 'Enter') commitRename()
+	      if (e.key === 'Escape') cancelRename()
+	    }}
+	    on:blur={commitRename}
+	    use:focusAll
+	  />
+	{:else}
+	  <button
+	    class="board-item"
+	    class:active={board.id === activeBoardId}
+	    on:click={() => onSelect(board.id)}
+	    on:contextmenu={(e) => openMenu(e, board)}
+	  >
+	    <span class="board-dot"></span>
+	    {board.name}
+	  </button>
+	{/if}
       </li>
     {:else}
-      <li class="empty-hint">No boards yet</li>
+      <li class="empty-hint">No boards yet.</li>
     {/each}
   </ul>
+
+{#if menu}
+  <ContextMenu
+    x={menu.x}
+    y={menu.y}
+    items={[
+      { label: 'Rename', action: () => startRename(menu!.board) },
+      { label: 'Delete board', danger: true, action: () => deleteBoard(menu!.board.id) },
+    ]}
+    onClose={() => (menu = null)}
+  />
+{/if}
+
+
 </aside>
 
 <style>
@@ -135,6 +195,19 @@
   color: var(--text-3);
   padding: 6px 8px;
   font-style: italic;
+}
+
+.rename-input {
+  width: 100%;
+  padding: 6px 8px;
+  margin: 0 0 2px;
+  border: 1px solid var(--text-1);
+  border-radius: 5px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  color: var(--text-1);
+  background: var(--surface);
+  outline: none;
 }
 
 </style>
