@@ -25,6 +25,38 @@ export async function createBoard(name: string) {
   console.log('[createBoard] done, activeBoardId:', board.id)
 }
 
+export async function renameBoard(id: number, name: string) {
+  await invoke('rename_board', { id, name })
+  boards.update(b => b.map(board => board.id === id ? { ...board, name } : board))
+}
+
+export async function deleteBoard(id: number) {
+  await invoke('delete_board', { id })
+  boards.update(b => b.filter(board => board.id !== id))
+  // if we deleted the active board, then select
+  // the first remaining one
+  const remaining = get(boards)
+  if (get(activeBoardId) === id) {
+    if (remaining.length > 0) {
+      await selectBoard(remaining[0].id)
+    } else {
+      activeBoardId.set(null)
+      columns.set([])
+      cardsByColumn.set({})
+    }
+  }
+}
+
+export async function deleteColumn(id: number) {
+  await invoke('delete_column', { id })
+  columns.update(c => c.filter(col => col.id !== id))
+  cardsByColumn.update(m => {
+    const next = { ...m }
+    delete next[id]
+    return next
+  })
+}
+
 export async function selectBoard(id: number) {
   activeBoardId.set(id)
   const cols = await invoke<Column[]>('get_columns', { boardId: id })
