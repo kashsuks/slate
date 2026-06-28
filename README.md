@@ -1,7 +1,23 @@
-# Tauri + SvelteKit + TypeScript
+# Slate
 
-This template should help get you started developing with Tauri, SvelteKit and TypeScript in Vite.
+Slate is a selfhosted suite of project management tools. Oh also its FOSS!
 
-## Recommended IDE Setup
+## Installation
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
+Currently under dev, but once ready for beta testing will be deployed on Cargo and static builds on Github Releases
+
+## Usage
+
+Non-existent for now
+
+
+## Contributing
+
+Pull requests are welcome. For major changes, please open an issue first
+to discuss what you would like to change.
+
+Please make sure to update tests as appropriate.
+
+## License
+
+[MIT](https://choosealicense.com/licenses/mit/)
