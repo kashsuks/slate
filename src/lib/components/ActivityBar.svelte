@@ -93,4 +93,14 @@
   color: var(--text-1);
 }
 
+.icon-asset {
+  opacity: 0.45;
+  transition: opacity var(--transition-fast);
+}
+
+.icon-btn:hover .icon-asset,
+.icon-btn.active .icon-asset {
+  opacity: 1;
+}
+
 </style>
