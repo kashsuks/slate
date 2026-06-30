@@ -43,10 +43,12 @@ body {
   font-family: var(--font-sans);
   background: var(--canvas);
   color: var(--text-1);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   user-select: none;
+  transition: background var(--transition-med), color var(--transition-med);
 }
 
 img, picture, video, canvas, svg {
