@@ -25,6 +25,7 @@ fn main() {
             tauri_app_lib::commands::columns::get_columns,
             tauri_app_lib::commands::columns::create_column,
             tauri_app_lib::commands::columns::rename_column,
+            tauri_app_lib::commands::columns::update_column_color,
             tauri_app_lib::commands::columns::delete_column,
             tauri_app_lib::commands::cards::get_cards,
             tauri_app_lib::commands::cards::create_card,

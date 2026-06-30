@@ -144,6 +144,13 @@ export async function renameColumn(columnId: number, name: string) {
   )
 }
 
+export async function updateColumnColor(columnId: number, color: string) {
+  await invoke('update_column_color', { id: columnId, color })
+  columns.update(cols =>
+    cols.map(c => c.id === columnId ? { ...c, color } : c)
+  )
+}
+
 export async function updateCard(
   columnId: number,
   cardId: number,

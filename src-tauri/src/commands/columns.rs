@@ -78,6 +78,15 @@ pub fn rename_column(id: i64, name: String, state: State<AppState>) -> bool {
     db.execute("UPDATE columns SET name = ?1 WHERE id = ?2", [&name, &id.to_string()]).is_ok()
 }
 
+#[tauri::command]
+pub fn update_column_color(id: i64, color: String, state: State<AppState>) -> bool {
+    let db = state.db.lock().unwrap();
+    db.execute(
+        "UPDATE columns SET color = ?1 WHERE id = ?2",
+        rusqlite::params![color, id],
+    ).is_ok()
+}
+
 /// BE CAREFUL WHEN USING THIS
 ///
 /// # Arguments
