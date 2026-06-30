@@ -166,12 +166,16 @@ export async function renameCard(
   cardId: number, 
   title: string
 ) {
+
+  const existing = get(cardsByColumn)[columnId]?.find(c => c.id === cardId)
+  if (!existing) return
+  
   await invoke('update_card', {
     id: cardId,
     title,
-    description: null,
-    priority: 'none',
-    due_date: null,
+    description: existing.description,
+    priority: existing.priority,
+    due_date: existing.due_date,
   })
   cardsByColumn.update(m => ({
     ...m,
