@@ -26,10 +26,10 @@
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-card);
   padding: 14px 16px;
   cursor: pointer;
-  transition: border-color 120ms, box-shadow 120ms;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-med);
   display: flex;
   flex-direction: column;
   gap: 6px;

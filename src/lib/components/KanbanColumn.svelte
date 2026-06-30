@@ -119,9 +119,9 @@
     <div class="column-actions">
       <span class="column-count">{cards.length}</span>
       <button class="delete-col-btn" on:click={handleDelete} title="Delete column">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-	  <path d="M2 2L8 8M10 2L2 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-	</svg>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 4L20 20M20 4L4 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
       </button>
     </div>
   </div>
@@ -166,10 +166,16 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: var(--canvas);
-  border-radius: 10px;
-  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-col);
+  padding: 8px;
   max-height: 100%;
+  transition: border-color var(--transition-fast);
+}
+
+.column:hover {
+  border-color: #C8C7C3;
 }
 
 .column-header {
@@ -253,7 +259,7 @@
   padding: 8px;
   border-radius: 6px;
   cursor: pointer;
-  transition: background 120ms, color 120ms;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .add-card-btn:hover {
