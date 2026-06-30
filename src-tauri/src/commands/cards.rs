@@ -132,18 +132,29 @@ pub fn move_card(
             rusqlite::params![position, id],
         ).is_ok()
     } else {
-        // Cross-column move: close gap in source, open gap in destination
-        db.execute(
-            "UPDATE cards SET position = position - 1 WHERE column_id = ?1 AND position > ?2",
-            rusqlite::params![old_column_id, old_position],
-        ).ok();
-        db.execute(
-            "UPDATE cards SET position = position + 1 WHERE column_id = ?1 AND position >= ?2 AND id != ?3",
-            rusqlite::params![column_id, position, id],
-        ).ok();
-        db.execute(
-            "UPDATE cards SET column_id = ?1, position = ?2 WHERE id = ?3",
-            rusqlite::params![column_id, position, id],
-        ).is_ok()
+        // Cross-column move: close gap in source, open a gap in the destination
+        let tx = match db.unchecked_transaction() {
+            Ok(t) => t,
+            Err(_) => return false,
+        };
+        let ok = (|| -> rusqlite::Result<()> {
+            tx.execute(
+                "UPDATE cards SET position = position - 1 WHERE column_id = ?1 AND position > ?2",
+                rusqlite::params![old_column_id, old_position],
+            )?;
+            tx.execute(
+                "UPDATE cards SET position = position + 1 WHERE column_id = ?1 AND position >= ?2 AND id != ?3",
+                rusqlite::params![column_id, position, id],
+            )?;
+            tx.execute(
+                "UPDATE cards SET column_id = ?1, position = ?2 WHERE id = ?3",
+                rusqlite::params![column_id, position, id],
+            )?;
+            Ok(())
+        })();
+        match ok {
+            Ok(_) => tx.commit().is_ok(),
+            Err(_) => { let _ = tx.rollback(); false }
+        }
     }
 }
