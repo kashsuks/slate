@@ -166,10 +166,16 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: var(--canvas);
-  border-radius: 10px;
-  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-col);
+  padding: 8px;
   max-height: 100%;
+  transition: border-color var(--transition-fast);
+}
+
+.column:hover {
+  border-color: #C8C7C3;
 }
 
 .column-header {
@@ -253,7 +259,7 @@
   padding: 8px;
   border-radius: 6px;
   cursor: pointer;
-  transition: background 120ms, color 120ms;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .add-card-btn:hover {
