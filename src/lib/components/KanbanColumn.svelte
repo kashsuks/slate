@@ -63,7 +63,18 @@
     return {}
   }
 
+  // track the true origin at drag-start
+  let dragOriginColumnId: number | null = null
+
   function handleConsider(e: CustomEvent) {
+    if (!dragging) {
+      // first consider the event
+      // a card is being picked up, column_id is still correct
+      const movedId = e.detail.info.id
+      const card = (e.detail.items as Card[]).find((c: Card) => c.id === movedId)
+        ?? Object.values(allCardsByColumn).flat().find((c: Card) => c.id === movedId)
+      dragOriginColumnId = card?.column_id ?? column.id
+    }
     dragging = true
     localCards = e.detail.items
   }
@@ -75,25 +86,18 @@
     localCards = items
 
     if (trigger === TRIGGERS.DROPPED_INTO_ANOTHER) {
-      // Update store immediately so the reactive `$: if (!dragging) localCards = cards`
-      // sees the card already removed — otherwise it snaps back before moveCard runs
       cardsByColumn.update(m => ({ ...m, [column.id]: items }))
       dragging = false
+      dragOriginColumnId = null
       return
     }
 
     const newIndex = items.findIndex((c: Card) => c.id === movedId)
-    // Use the card's own column_id as source of truth — avoids stale allCardsByColumn lookups
-    let fromColumnId = column.id
-    for (const [colId, colCards] of Object.entries(allCardsByColumn)) {
-      if (Number(colId) !== column.id && colCards.some((c: Card) => c.id === movedId)) {
-        fromColumnId = Number(colId)
-	break
-      }
-    }
+    const fromColumnId = dragOriginColumnId ?? column.id
 
     await moveCard(movedId, fromColumnId, column.id, newIndex)
     dragging = false
+    dragOriginColumnId = null
   }
 </script>
 
