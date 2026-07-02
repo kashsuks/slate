@@ -37,13 +37,40 @@ pub fn get_cards(column_id: i64, state: State<AppState>) -> Vec<Card> {
     .collect()
 }
 
+const VALID_PRIORITIES: &[&str] = &["none", "low", "medium", "high"];
+
+fn validate_title(title: &str) -> bool {
+    let t = title.trim();
+    !t.is_empty() && t.len() <= 255
+}
+
+fn validate_description(desc: &Option<String>) -> bool {
+    desc.as_ref().map_or(true, |d| d.len() <= 10_000)
+}
+
+fn validate_priority(priority: &str) -> bool {
+    VALID_PRIORITIES.contains(&priority)
+}
+
+fn validate_due_date(due_date: &Option<String>) -> bool {
+    due_date.as_ref().map_or(true, |d| {
+        // expects YYYY-MM-DD
+        let parts: Vec<&str> = d.split('-').collect();
+        parts.len() == 3
+            && parts[0].len() == 4
+            && parts[1].len() == 2
+            && parts[2].len() == 2
+            && parts.iter().all(|p| p.chars().all(|c| c.is_ascii_digit()))
+    })
+}
+
 #[tauri::command]
 pub fn create_card(
     column_id: i64, 
     title: String, 
     state: State<AppState>
 ) -> Option<Card> {
-    
+    if !validate_title(&title) { return None } 
     let db = state.db.lock().unwrap();
     let position: i64 = db
         .query_row(
@@ -82,6 +109,10 @@ pub fn update_card(
     due_date: Option<String>,
     state: State<AppState>,
 ) -> bool {
+    if !validate_title(&title) { return false }
+    if !validate_description(&description) { return false }
+    if !validate_priority(&priority) { return false }
+    if !validate_due_date(&due_date) { return false }
     let db = state.db.lock().unwrap();
     db.execute(
         "UPDATE cards SET title = ?1, description = ?2, priority = ?3, due_date = ?4 WHERE id = ?5",
@@ -102,6 +133,7 @@ pub fn move_card(
     position: i64,
     state: State<AppState>
 ) -> bool {
+    if position < 0 { return false }
     let db = state.db.lock().unwrap();
 
     let result = db.query_row(

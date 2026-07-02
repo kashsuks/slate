@@ -44,8 +44,14 @@ pub fn get_columns(board_id: i64, state: State<AppState>) -> Vec<Column> {
     .collect()
 }
 
+fn validate_name(name: &str) -> bool {
+    let trimmed = name.trim();
+    !trimmed.is_empty() && trimmed.len() <= 255
+}
+
 #[tauri::command]
 pub fn create_column(board_id: i64, name: String, state: State<AppState>) -> Option<Column> {
+    if !validate_name(&name) { return None }
     let db = state.db.lock().unwrap();
     let position: i64 = db
         .query_row(
@@ -74,6 +80,7 @@ pub fn create_column(board_id: i64, name: String, state: State<AppState>) -> Opt
 
 #[tauri::command]
 pub fn rename_column(id: i64, name: String, state: State<AppState>) -> bool {
+    if !validate_name(&name) { return false }
     let db = state.db.lock().unwrap();
     db.execute("UPDATE columns SET name = ?1 WHERE id = ?2", [&name, &id.to_string()]).is_ok()
 }

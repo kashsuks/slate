@@ -41,6 +41,14 @@ pub fn get_boards(state: State<AppState>) -> Vec<Board> {
     .collect()
 }
 
+fn validate_name(name: &str) -> Result<(), String> {
+    let trimmed = name.trim();
+    if trimmed.is_empty() {
+        return Err("Name cannot exceed 255 characters".into());
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub fn create_board(name: String, state: State<AppState>) -> Result<Board, String> {
     let db = state.db.lock().unwrap();
@@ -66,6 +74,7 @@ pub fn create_board(name: String, state: State<AppState>) -> Result<Board, Strin
 
 #[tauri::command]
 pub fn rename_board(id: i64, name: String, state: State<AppState>) -> bool {
+    if validate_name(&name).is_err() { return false }
     let db = state.db.lock().unwrap();
     db.execute("UPDATE boards SET name = ?1 WHERE id = ?2", [&name, &id.to_string()]).is_ok()
 }
