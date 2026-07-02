@@ -26,7 +26,7 @@ pub struct Column {
 /// ```
 #[tauri::command]
 pub fn get_columns(board_id: i64, state: State<AppState>) -> Vec<Column> {
-    let db = state.db.lock().unwrap();
+    let Ok(db) = state.db.get() else { return vec![] };
     let mut stmt = db
         .prepare("SELECT id, board_id, name, position, color FROM columns WHERE board_id = ?1 ORDER BY position ASC")
         .unwrap();
@@ -52,7 +52,7 @@ fn validate_name(name: &str) -> bool {
 #[tauri::command]
 pub fn create_column(board_id: i64, name: String, state: State<AppState>) -> Option<Column> {
     if !validate_name(&name) { return None }
-    let db = state.db.lock().unwrap();
+    let Ok(db) = state.db.get() else { return None };
     let position: i64 = db
         .query_row(
             "SELECT COALESCE(MAX(position) + 1, 0) FROM columns WHERE board_id = ?1",
@@ -81,13 +81,13 @@ pub fn create_column(board_id: i64, name: String, state: State<AppState>) -> Opt
 #[tauri::command]
 pub fn rename_column(id: i64, name: String, state: State<AppState>) -> bool {
     if !validate_name(&name) { return false }
-    let db = state.db.lock().unwrap();
+    let Ok(db) = state.db.get() else { return false };
     db.execute("UPDATE columns SET name = ?1 WHERE id = ?2", [&name, &id.to_string()]).is_ok()
 }
 
 #[tauri::command]
 pub fn update_column_color(id: i64, color: String, state: State<AppState>) -> bool {
-    let db = state.db.lock().unwrap();
+    let Ok(db) = state.db.get() else { return false };
     db.execute(
         "UPDATE columns SET color = ?1 WHERE id = ?2",
         rusqlite::params![color, id],
@@ -102,6 +102,6 @@ pub fn update_column_color(id: i64, color: String, state: State<AppState>) -> bo
 /// * `state` - Current app state
 #[tauri::command]
 pub fn delete_column(id: i64, state: State<AppState>) -> bool {
-    let db = state.db.lock().unwrap();
+    let Ok(db) = state.db.get() else { return false };
     db.execute("DELETE FROM columns WHERE id = ?1", [id]).is_ok()
 }

@@ -1,6 +1,6 @@
-use tauri_app_lib::{AppState, init_db};
-use rusqlite::Connection;
-use std::sync::Mutex;
+use tauri_app_lib::{AppState, DbPool, init_db};
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
 use tauri::Manager;
 
 fn main() {
@@ -9,10 +9,14 @@ fn main() {
             let data_dir = app.path().app_data_dir().unwrap();
             std::fs::create_dir_all(&data_dir).unwrap();
             let db_path = data_dir.join("slate.db");
-            let conn = Connection::open(db_path).unwrap();
-            init_db(&conn); // might require a time stop if the connection fails
+            let manager = SqliteConnectionManager::file(db_path);
+            let pool: DbPool = Pool::builder()
+                .max_size(8)
+                .build(manager)
+                .expect("Failed to create DB pool");
+            init_db(&pool); // might require a time stop if the connection fails
                             // or exceeds a time limit
-            app.manage(AppState { db: Mutex::new(conn) });
+            app.manage(AppState { db: pool });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

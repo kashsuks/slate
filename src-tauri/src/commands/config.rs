@@ -3,7 +3,7 @@ use tauri::State;
 
 #[tauri::command]
 pub fn get_config(key: String, state: State<AppState>) -> Option<String> {
-    let db = state.db.lock().unwrap();
+    let Ok(db) = state.db.get() else { return None };
     db.query_row(
         "SELECT value FROM app_config WHERE key = ?1",
         [&key],
@@ -13,7 +13,7 @@ pub fn get_config(key: String, state: State<AppState>) -> Option<String> {
 
 #[tauri::command]
 pub fn set_config(key: String, value: String, state: State<AppState>) -> bool {
-    let db = state.db.lock().unwrap();
+    let Ok(db) = state.db.get() else { return false };
     db.execute(
         "INSERT INTO app_config (key, value) VALUES (?1, ?2)
          ON CONFLICT(key) DO UPDATE SET value = excluded.value",

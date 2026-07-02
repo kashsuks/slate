@@ -16,7 +16,7 @@ pub struct Card {
 
 #[tauri::command]
 pub fn get_cards(column_id: i64, state: State<AppState>) -> Vec<Card> {
-    let db = state.db.lock().unwrap();
+    let Ok(db) = state.db.get() else { return vec![] };
     let mut stmt = db
         .prepare("SELECT id, column_id, title, description, priority, due_date, position, created_at FROM cards WHERE column_id = ?1 ORDER BY position ASC")
         .unwrap();
@@ -71,7 +71,7 @@ pub fn create_card(
     state: State<AppState>
 ) -> Option<Card> {
     if !validate_title(&title) { return None } 
-    let db = state.db.lock().unwrap();
+    let Ok(db) = state.db.get() else { return None };
     let position: i64 = db
         .query_row(
             "SELECT COALESCE(MAX(position) +1, 0) FROM cards WHERE column_id = ?1",
@@ -113,7 +113,7 @@ pub fn update_card(
     if !validate_description(&description) { return false }
     if !validate_priority(&priority) { return false }
     if !validate_due_date(&due_date) { return false }
-    let db = state.db.lock().unwrap();
+    let Ok(db) = state.db.get() else { return false };
     db.execute(
         "UPDATE cards SET title = ?1, description = ?2, priority = ?3, due_date = ?4 WHERE id = ?5",
         rusqlite::params![title, description, priority, due_date, id]
@@ -122,7 +122,7 @@ pub fn update_card(
 
 #[tauri::command]
 pub fn delete_card(id: i64, state: State<AppState>) -> bool {
-    let db = state.db.lock().unwrap();
+    let Ok(db) = state.db.get() else { return false };
     db.execute("DELETE FROM cards WHERE id = ?1", [id]).is_ok()
 }
 
@@ -134,7 +134,7 @@ pub fn move_card(
     state: State<AppState>
 ) -> bool {
     if position < 0 { return false }
-    let db = state.db.lock().unwrap();
+    let Ok(db) = state.db.get() else { return false };
 
     let result = db.query_row(
         "SELECT column_id, position FROM cards WHERE id = ?1",
