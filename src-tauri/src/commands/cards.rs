@@ -1,41 +1,9 @@
 use crate::AppState;
-use serde::{Deserialize, Serialize};
+use crate::db::cards::{
+    Card, create_card as db_create_card, delete_card as db_delete_card,
+    get_cards as db_get_cards, move_card as db_move_card, update_card as db_update_card,
+};
 use tauri::State;
-
-#[derive(Serialize, Deserialize)]
-pub struct Card {
-    pub id: i64,
-    pub column_id: i64,
-    pub title: String,
-    pub description: Option<String>,
-    pub priority: String,
-    pub due_date: Option<String>,
-    pub position: i64, // where in the stack of cards is it located 
-    pub created_at: String,
-}
-
-#[tauri::command]
-pub fn get_cards(column_id: i64, state: State<AppState>) -> Vec<Card> {
-    let Ok(db) = state.db.get() else { return vec![] };
-    let mut stmt = db
-        .prepare("SELECT id, column_id, title, description, priority, due_date, position, created_at FROM cards WHERE column_id = ?1 ORDER BY position ASC")
-        .unwrap();
-    stmt.query_map([column_id], |row| {
-        Ok(Card {
-            id: row.get(0)?,
-            column_id: row.get(1)?,
-            title: row.get(2)?,
-            description: row.get(3)?,
-            priority: row.get(4)?,
-            due_date: row.get(5)?,
-            position: row.get(6)?,
-            created_at: row.get(7)?,
-        })
-    })
-    .unwrap()
-    .filter_map(|r| r.ok())
-    .collect()
-}
 
 const VALID_PRIORITIES: &[&str] = &["none", "low", "medium", "high"];
 
@@ -54,7 +22,6 @@ fn validate_priority(priority: &str) -> bool {
 
 fn validate_due_date(due_date: &Option<String>) -> bool {
     due_date.as_ref().map_or(true, |d| {
-        // expects YYYY-MM-DD
         let parts: Vec<&str> = d.split('-').collect();
         parts.len() == 3
             && parts[0].len() == 4
@@ -65,39 +32,14 @@ fn validate_due_date(due_date: &Option<String>) -> bool {
 }
 
 #[tauri::command]
-pub fn create_card(
-    column_id: i64, 
-    title: String, 
-    state: State<AppState>
-) -> Option<Card> {
-    if !validate_title(&title) { return None } 
-    let Ok(db) = state.db.get() else { return None };
-    let position: i64 = db
-        .query_row(
-            "SELECT COALESCE(MAX(position) +1, 0) FROM cards WHERE column_id = ?1",
-            [column_id],
-            |r| r.get(0),
-        )
-        .unwrap_or(0);
-    db.execute(
-        "INSERT INTO cards (column_id, title, position) VALUES (?1, ?2, ?3)",
-        rusqlite::params![column_id, title, position],
-    ).ok()?;
-    let id = db.last_insert_rowid();
-    db.query_row(
-        "SELECT id, column_id, title, description, priority, due_date, position, created_at FROM cards WHERE id = ?1",
-        [id],
-        |row| Ok(Card {
-            id: row.get(0)?,
-            column_id: row.get(1)?,
-            title: row.get(2)?,
-            description: row.get(3)?,
-            priority: row.get(4)?,
-            due_date: row.get(5)?,
-            position: row.get(6)?,
-            created_at: row.get(7)?,
-        })
-    ).ok()
+pub fn get_cards(column_id: i64, state: State<AppState>) -> Vec<Card> {
+    db_get_cards(&state.db, column_id)
+}
+
+#[tauri::command]
+pub fn create_card(column_id: i64, title: String, state: State<AppState>) -> Option<Card> {
+    if !validate_title(&title) { return None }
+    db_create_card(&state.db, column_id, &title)
 }
 
 #[tauri::command]
@@ -113,80 +55,16 @@ pub fn update_card(
     if !validate_description(&description) { return false }
     if !validate_priority(&priority) { return false }
     if !validate_due_date(&due_date) { return false }
-    let Ok(db) = state.db.get() else { return false };
-    db.execute(
-        "UPDATE cards SET title = ?1, description = ?2, priority = ?3, due_date = ?4 WHERE id = ?5",
-        rusqlite::params![title, description, priority, due_date, id]
-    ).is_ok()
+    db_update_card(&state.db, id, &title, description, &priority, due_date)
 }
 
 #[tauri::command]
 pub fn delete_card(id: i64, state: State<AppState>) -> bool {
-    let Ok(db) = state.db.get() else { return false };
-    db.execute("DELETE FROM cards WHERE id = ?1", [id]).is_ok()
+    db_delete_card(&state.db, id)
 }
 
 #[tauri::command]
-pub fn move_card(
-    id: i64,
-    column_id: i64,
-    position: i64,
-    state: State<AppState>
-) -> bool {
+pub fn move_card(id: i64, column_id: i64, position: i64, state: State<AppState>) -> bool {
     if position < 0 { return false }
-    let Ok(db) = state.db.get() else { return false };
-
-    let result = db.query_row(
-        "SELECT column_id, position FROM cards WHERE id = ?1",
-        [id],
-        |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
-    );
-    let (old_column_id, old_position) = match result {
-        Ok(v) => v,
-        Err(_) => return false,
-    };
-
-    if old_column_id == column_id {
-        // Same-column reorder: shift the displaced cards to close/open the gap
-        if old_position < position {
-            db.execute(
-                "UPDATE cards SET position = position - 1 WHERE column_id = ?1 AND position > ?2 AND position <= ?3 AND id != ?4",
-                rusqlite::params![column_id, old_position, position, id],
-            ).ok();
-        } else {
-            db.execute(
-                "UPDATE cards SET position = position + 1 WHERE column_id = ?1 AND position >= ?2 AND position < ?3 AND id != ?4",
-                rusqlite::params![column_id, position, old_position, id],
-            ).ok();
-        }
-        db.execute(
-            "UPDATE cards SET position = ?1 WHERE id = ?2",
-            rusqlite::params![position, id],
-        ).is_ok()
-    } else {
-        // Cross-column move: close gap in source, open a gap in the destination
-        let tx = match db.unchecked_transaction() {
-            Ok(t) => t,
-            Err(_) => return false,
-        };
-        let ok = (|| -> rusqlite::Result<()> {
-            tx.execute(
-                "UPDATE cards SET position = position - 1 WHERE column_id = ?1 AND position > ?2",
-                rusqlite::params![old_column_id, old_position],
-            )?;
-            tx.execute(
-                "UPDATE cards SET position = position + 1 WHERE column_id = ?1 AND position >= ?2 AND id != ?3",
-                rusqlite::params![column_id, position, id],
-            )?;
-            tx.execute(
-                "UPDATE cards SET column_id = ?1, position = ?2 WHERE id = ?3",
-                rusqlite::params![column_id, position, id],
-            )?;
-            Ok(())
-        })();
-        match ok {
-            Ok(_) => tx.commit().is_ok(),
-            Err(_) => { let _ = tx.rollback(); false }
-        }
-    }
+    db_move_card(&state.db, id, column_id, position)
 }
