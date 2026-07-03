@@ -1,7 +1,7 @@
 use crate::DbPool;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serializez, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Board {
     pub id: i64,
     pub name: String,
@@ -49,7 +49,7 @@ pub fn create_board(pool: &DbPool, name: &str) -> Result<Board, String> {
     ).map_err(|e| e.to_string())
 }
 
-pub fn rename_board(poo: &DbPool, id: i64, name: &str) -> bool {
+pub fn rename_board(pool: &DbPool, id: i64, name: &str) -> bool {
     let Ok(db) = pool.get() else { return false };
     db.execute(
         "UPDATE boards SET name = ?1 WHERE id = ?2",

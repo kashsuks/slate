@@ -45,7 +45,7 @@ pub fn create_column(pool: &DbPool, board_id: i64, name: &str) -> Option<Column>
     let id = db.last_insert_rowid();
     db.query_row(
         "SELECT id, board_id, name, position, color FROM columns WHERE id = ?1",
-        [id]
+        [id],
         |row| Ok(Column {
             id: row.get(0)?,
             board_id: row.get(1)?,

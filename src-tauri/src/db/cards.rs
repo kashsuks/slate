@@ -76,7 +76,7 @@ pub fn update_card(
 ) -> bool {
     let Ok(db) = pool.get() else { return false };
     db.execute(
-        "UPDATE cards SET title = ?1, description = ?2, priority = ?3, due_date = ?4, WHERE id = ?5",
+        "UPDATE cards SET title = ?1, description = ?2, priority = ?3, due_date = ?4 WHERE id = ?5",
         rusqlite::params![title, description, priority, due_date, id],
     ).is_ok()
 }
@@ -107,7 +107,7 @@ pub fn move_card(pool: &DbPool, id: i64, column_id: i64, position: i64) -> bool 
             ).ok();
         } else {
             db.execute(
-                "UPDATE cards SET position = position + 1 WHERE column_id = ?1 AND position >= ?2 AND positon < ?3 AND id != ?4",
+                "UPDATE cards SET position = position + 1 WHERE column_id = ?1 AND position >= ?2 AND position < ?3 AND id != ?4",
                 rusqlite::params![column_id, position, old_position, id],
             ).ok();
         }
