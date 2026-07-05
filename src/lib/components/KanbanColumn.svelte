@@ -1,7 +1,11 @@
 <script lang="ts">
   import type { Column, Card } from '$lib/types'
   import KanbanCard from './KanbanCard.svelte'
-  import { createCard, renameColumn, moveCard, deleteColumn, cardsByColumn } from '$lib/stores/board'
+  import { createCard, renameColumn, updateColumnColor, moveCard, deleteColumn, cardsByColumn } from '$lib/stores/board'
+
+  const COLORS = ['#EAEAEA', '#FADADD', '#D4EDDA', '#D0E8FF', '#FFF3CD', '#E8D5F5', '#FFE5CC']
+  let showColorPicker = false
+
   import { dndzone, TRIGGERS } from 'svelte-dnd-action'
   import { flip } from 'svelte/animate'
 
@@ -63,7 +67,18 @@
     return {}
   }
 
+  // track the true origin at drag-start
+  let dragOriginColumnId: number | null = null
+
   function handleConsider(e: CustomEvent) {
+    if (!dragging) {
+      // first consider the event
+      // a card is being picked up, column_id is still correct
+      const movedId = e.detail.info.id
+      const card = (e.detail.items as Card[]).find((c: Card) => c.id === movedId)
+        ?? Object.values(allCardsByColumn).flat().find((c: Card) => c.id === movedId)
+      dragOriginColumnId = card?.column_id ?? column.id
+    }
     dragging = true
     localCards = e.detail.items
   }
@@ -75,25 +90,18 @@
     localCards = items
 
     if (trigger === TRIGGERS.DROPPED_INTO_ANOTHER) {
-      // Update store immediately so the reactive `$: if (!dragging) localCards = cards`
-      // sees the card already removed — otherwise it snaps back before moveCard runs
       cardsByColumn.update(m => ({ ...m, [column.id]: items }))
       dragging = false
+      dragOriginColumnId = null
       return
     }
 
     const newIndex = items.findIndex((c: Card) => c.id === movedId)
-    // Use the card's own column_id as source of truth — avoids stale allCardsByColumn lookups
-    let fromColumnId = column.id
-    for (const [colId, colCards] of Object.entries(allCardsByColumn)) {
-      if (Number(colId) !== column.id && colCards.some((c: Card) => c.id === movedId)) {
-        fromColumnId = Number(colId)
-	break
-      }
-    }
+    const fromColumnId = dragOriginColumnId ?? column.id
 
     await moveCard(movedId, fromColumnId, column.id, newIndex)
     dragging = false
+    dragOriginColumnId = null
   }
 </script>
 
@@ -118,6 +126,15 @@
     {/if}
     <div class="column-actions">
       <span class="column-count">{cards.length}</span>
+
+      <!-- Color swatch trigger -->
+      <button
+        class="color-btn"
+        style="background: {column.color}"
+        on:click={() => (showColorPicker = !showColorPicker)}
+        title="Change color"
+      />
+
       <button class="delete-col-btn" on:click={handleDelete} title="Delete column">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M4 4L20 20M20 4L4 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -125,6 +142,19 @@
       </button>
     </div>
   </div>
+
+  {#if showColorPicker}
+    <div class="color-picker">
+      {#each COLORS as c}
+        <button
+          class="color-swatch"
+          class:active={column.color === c}
+          style="background: {c}"
+          on:click={() => { updateColumnColor(column.id, c); showColorPicker = false }}
+        />
+      {/each}
+    </div>
+  {/if}
   <div
     class="cards-list"
     use:dndzone={{ items: localCards, flipDurationMs: 150, dropTargetStyle: {} }}
@@ -284,6 +314,46 @@
   text-decoration: underline;
   text-decoration-color: var(--border);
   text-underline-offset: 3px;
+}
+
+.color-btn {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: transform 120ms;
+}
+
+.color-btn:hover {
+  transform: scale(1.2);
+}
+
+.color-picker {
+  display: flex;
+  gap: 6px;
+  padding: 6px 10px;
+  flex-wrap: wrap;
+}
+
+.color-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 120ms;
+}
+
+.color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.color-swatch.active {
+  border: 2px solid var(--text-1);
 }
 
 .rename-input {

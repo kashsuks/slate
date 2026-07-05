@@ -1,13 +1,18 @@
 pub mod commands;
+pub mod db;
+pub mod server;
 
-use rusqlite::Connection;
-use std::sync::Mutex;
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
+
+pub type DbPool = Pool<SqliteConnectionManager>;
 
 pub struct AppState {
-    pub db: Mutex<Connection>,
+    pub db: DbPool,
 }
 
-pub fn init_db(conn: &Connection) {
+pub fn init_db(pool: &DbPool) {
+    let conn = pool.get().expect("Failed to get DB connection from pool");
     conn.execute_batch("
         PRAGMA journal_mode=WAL;
 

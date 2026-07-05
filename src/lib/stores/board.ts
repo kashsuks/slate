@@ -144,6 +144,13 @@ export async function renameColumn(columnId: number, name: string) {
   )
 }
 
+export async function updateColumnColor(columnId: number, color: string) {
+  await invoke('update_column_color', { id: columnId, color })
+  columns.update(cols =>
+    cols.map(c => c.id === columnId ? { ...c, color } : c)
+  )
+}
+
 export async function updateCard(
   columnId: number,
   cardId: number,
@@ -166,12 +173,16 @@ export async function renameCard(
   cardId: number, 
   title: string
 ) {
+
+  const existing = get(cardsByColumn)[columnId]?.find(c => c.id === cardId)
+  if (!existing) return
+  
   await invoke('update_card', {
     id: cardId,
     title,
-    description: null,
-    priority: 'none',
-    due_date: null,
+    description: existing.description,
+    priority: existing.priority,
+    due_date: existing.due_date,
   })
   cardsByColumn.update(m => ({
     ...m,

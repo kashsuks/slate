@@ -1,15 +1,14 @@
 use crate::AppState;
-use serde::{Deserialize, Serialize};
+use crate::db::columns::{
+    Column, create_column as db_create_column, delete_column as db_delete_column,
+    get_columns as db_get_columns, rename_column as db_rename_column,
+    update_column_color as db_update_column_color,
+};
 use tauri::State;
 
-/// All the fetched datatypes from the DB
-#[derive(Serialize, Deserialize)]
-pub struct Column {
-    pub id: i64,
-    pub board_id: i64,
-    pub name: String,
-    pub position: i64,
-    pub color: String,
+fn validate_name(name: &str) -> bool {
+    let trimmed = name.trim();
+    !trimmed.is_empty() && trimmed.len() <= 255
 }
 
 /// Fetch the required information from the DB
@@ -26,56 +25,24 @@ pub struct Column {
 /// ```
 #[tauri::command]
 pub fn get_columns(board_id: i64, state: State<AppState>) -> Vec<Column> {
-    let db = state.db.lock().unwrap();
-    let mut stmt = db
-        .prepare("SELECT id, board_id, name, position, color FROM columns WHERE board_id = ?1 ORDER BY position ASC")
-        .unwrap();
-    stmt.query_map([board_id], |row| {
-        Ok(Column {
-            id: row.get(0)?,
-            board_id: row.get(1)?,
-            name: row.get(2)?,
-            position: row.get(3)?,
-            color: row.get(4)?,
-        })
-    })
-    .unwrap()
-    .filter_map(|r| r.ok())
-    .collect()
+    db_get_columns(&state.db, board_id)
 }
 
 #[tauri::command]
 pub fn create_column(board_id: i64, name: String, state: State<AppState>) -> Option<Column> {
-    let db = state.db.lock().unwrap();
-    let position: i64 = db
-        .query_row(
-            "SELECT COALESCE(MAX(position) + 1, 0) FROM columns WHERE board_id = ?1",
-            [board_id],
-            |r| r.get(0),
-        )
-        .unwrap_or(0);
-    db.execute(
-        "INSERT INTO columns (board_id, name, position) VALUES (?1, ?2, ?3)",
-        rusqlite::params![board_id, name, position],
-    ).ok()?;
-    let id = db.last_insert_rowid();
-    db.query_row(
-        "SELECT id, board_id, name, position, color FROM columns WHERE id = ?1",
-        [id],
-        |row| Ok(Column {
-            id: row.get(0)?,
-            board_id: row.get(1)?,
-            name: row.get(2)?,
-            position: row.get(3)?,
-            color: row.get(4)?,
-        }),
-    ).ok()
+    if !validate_name(&name) { return None }
+    db_create_column(&state.db, board_id, &name)
 }
 
 #[tauri::command]
 pub fn rename_column(id: i64, name: String, state: State<AppState>) -> bool {
-    let db = state.db.lock().unwrap();
-    db.execute("UPDATE columns SET name = ?1 WHERE id = ?2", [&name, &id.to_string()]).is_ok()
+    if !validate_name(&name) { return false }
+    db_rename_column(&state.db, id, &name)
+}
+
+#[tauri::command]
+pub fn update_column_color(id: i64, color: String, state: State<AppState>) -> bool {
+    db_update_column_color(&state.db, id, &color)
 }
 
 /// BE CAREFUL WHEN USING THIS
@@ -86,6 +53,5 @@ pub fn rename_column(id: i64, name: String, state: State<AppState>) -> bool {
 /// * `state` - Current app state
 #[tauri::command]
 pub fn delete_column(id: i64, state: State<AppState>) -> bool {
-    let db = state.db.lock().unwrap();
-    db.execute("DELETE FROM columns WHERE id = ?1", [id]).is_ok()
+    db_delete_column(&state.db, id)
 }

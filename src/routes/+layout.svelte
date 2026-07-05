@@ -8,6 +8,12 @@
   let isOnboarding = false
 
   onMount(async () => {
+    // restore the dark mode preferences before anything renders
+    const theme = localStorage.getItem('theme')
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark')
+    }
+
     isOnboarding = window.location.pathname.startsWith('/onboarding')
     if (isOnboarding) {
       ready = true
