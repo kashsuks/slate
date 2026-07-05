@@ -28,13 +28,13 @@ async fn main() {
             .ok()
             .and_then(|p| p.parse().ok())
             .unwrap_or(3000);
-        server::run(pool, port).await;
+        tauri_app_lib::server::run(pool, port).await;
     } else {
         // desktop mode - normal tauri app
         tauri::Builder::default()
             .setup(|app| {
                 let data_dir = app.path().app_data_dir().unwrap();
-                std::fs::create_dir_all(&data.dir).unwrap();
+                std::fs::create_dir_all(&data_dir).unwrap();
                 let db_path = data_dir.join("slate.db");
                 let pool = build_pool(db_path);
                 init_db(&pool);

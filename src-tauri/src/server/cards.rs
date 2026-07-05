@@ -4,7 +4,10 @@ use axum::{
     Json,
 };
 use serde::Deserialize;
-use crate::db::cards::{Card, get_cards, create_card, update_card, delete_card, move_card};
+use crate::db::cards::{
+    Card, create_card as db_create_card, delete_card as db_delete_card,
+    get_cards as db_get_cards, move_card as db_move_card, update_card as db_update_card,
+};
 use super::SharedPool;
 
 #[derive(Deserialize)]
@@ -57,7 +60,7 @@ pub async fn get_cards(
     State(pool): State<SharedPool>,
     Path(column_id): Path<i64>,
 ) -> Json<Vec<Card>> {
-    Json(get_cards(&pool, column_id))
+    Json(db_get_cards(&pool, column_id))
 }
 
 pub async fn create_card(
@@ -65,7 +68,7 @@ pub async fn create_card(
     Json(body): Json<CreateCardBody>,
 ) -> Result<Json<Card>, StatusCode> {
     if !validate_title(&body.title) { return Err(StatusCode::UNPROCESSABLE_ENTITY) }
-    create_card(&pool, body.column_id, &body.title)
+    db_create_card(&pool, body.column_id, &body.title)
         .map(Json)
         .ok_or(StatusCode::INTERNAL_SERVER_ERROR)
 }
@@ -79,7 +82,7 @@ pub async fn update_card(
     if !validate_description(&body.description) { return StatusCode::UNPROCESSABLE_ENTITY }
     if !validate_priority(&body.priority) { return StatusCode::UNPROCESSABLE_ENTITY }
     if !validate_due_date(&body.due_date) { return StatusCode::UNPROCESSABLE_ENTITY }
-    if update_card(&pool, id, &body.title, body.description, &body.priority, body.due_date) {
+    if db_update_card(&pool, id, &body.title, body.description, &body.priority, body.due_date) {
         StatusCode::NO_CONTENT
     } else {
         StatusCode::INTERNAL_SERVER_ERROR
@@ -90,7 +93,7 @@ pub async fn delete_card(
     State(pool): State<SharedPool>,
     Path(id): Path<i64>,
 ) -> StatusCode {
-    if delete_card(&pool, id) {
+    if db_delete_card(&pool, id) {
         StatusCode::NO_CONTENT
     } else {
         StatusCode::INTERNAL_SERVER_ERROR
@@ -103,7 +106,7 @@ pub async fn move_card(
     Json(body): Json<MoveCardBody>,
 ) -> StatusCode {
     if body.position < 0 { return StatusCode::UNPROCESSABLE_ENTITY }
-    if move_card(&pool, id, body.column_id, body.position) {
+    if db_move_card(&pool, id, body.column_id, body.position) {
         StatusCode::NO_CONTENT
     } else {
         StatusCode::INTERNAL_SERVER_ERROR

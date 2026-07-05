@@ -3,16 +3,20 @@
   import { onMount } from 'svelte'
   import { goto } from '$app/navigation'
   import { isOnboardingComplete, loadTools } from '$lib/stores/config'
+  import { checkConnection } from '$lib/api'
 
   let ready = false
   let isOnboarding = false
 
   onMount(async () => {
-    // restore the dark mode preferences before anything renders
+    // Restore dark mode before anything renders
     const theme = localStorage.getItem('theme')
     if (theme === 'dark') {
       document.documentElement.classList.add('dark')
     }
+
+    // Check server connection before any store calls fire
+    await checkConnection()
 
     isOnboarding = window.location.pathname.startsWith('/onboarding')
     if (isOnboarding) {
