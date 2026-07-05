@@ -1,6 +1,10 @@
-import { invoke } from '@tauri-apps/api/core'
 import { writable, get } from 'svelte/store'
 import type { Board, Column, Card } from '$lib/types'
+import {
+  apiGetBoards, apiCreateBoard, apiRenameBoard, apiDeleteBoard,
+  apiGetColumns, apiCreateColumn, apiRenameColumn, apiUpdateColumnColor, apiDeleteColumn,
+  apiGetCards, apiCreateCard, apiUpdateCard, apiDeleteCard, apiMoveCard,
+} from '$lib/api'
 
 export const boards = writable<Board[]>([])
 export const activeBoardId = writable<number | null>(null)
@@ -8,7 +12,7 @@ export const columns = writable<Column[]>([])
 export const cardsByColumn = writable<Record<number, Card[]>>({})
 
 export async function loadBoards() {
-  const result = await invoke<Board[]>('get_boards')
+  const result = await apiGetBoards()
   boards.set(result)
   if (result.length > 0 && get(activeBoardId) === null) {
     await selectBoard(result[0].id)
@@ -16,25 +20,20 @@ export async function loadBoards() {
 }
 
 export async function createBoard(name: string) {
-  console.log('[createBoard] invoking with name:', name)
-  const board = await invoke<Board>('create_board', { name })
-  console.log('[createBoard] result:', board)
-  if (!board) throw new Error('create_board returned null — check Rust logs')
+  const board = await apiCreateBoard(name)
+  if (!board) throw new Error('createBoard returned null')
   boards.update(b => [...b, board])
   await selectBoard(board.id)
-  console.log('[createBoard] done, activeBoardId:', board.id)
 }
 
 export async function renameBoard(id: number, name: string) {
-  await invoke('rename_board', { id, name })
+  await apiRenameBoard(id, name)
   boards.update(b => b.map(board => board.id === id ? { ...board, name } : board))
 }
 
 export async function deleteBoard(id: number) {
-  await invoke('delete_board', { id })
+  await apiDeleteBoard(id)
   boards.update(b => b.filter(board => board.id !== id))
-  // if we deleted the active board, then select
-  // the first remaining one
   const remaining = get(boards)
   if (get(activeBoardId) === id) {
     if (remaining.length > 0) {
@@ -47,8 +46,27 @@ export async function deleteBoard(id: number) {
   }
 }
 
+export async function selectBoard(id: number) {
+  activeBoardId.set(id)
+  const cols = await apiGetColumns(id)
+  columns.set(cols)
+  const cardMap: Record<number, Card[]> = {}
+  for (const col of cols) {
+    cardMap[col.id] = await apiGetCards(col.id)
+  }
+  cardsByColumn.set(cardMap)
+}
+
+export async function createColumn(boardId: number, name: string) {
+  const col = await apiCreateColumn(boardId, name)
+  if (col) {
+    columns.update(c => [...c, col])
+    cardsByColumn.update(m => ({ ...m, [col.id]: [] }))
+  }
+}
+
 export async function deleteColumn(id: number) {
-  await invoke('delete_column', { id })
+  await apiDeleteColumn(id)
   columns.update(c => c.filter(col => col.id !== id))
   cardsByColumn.update(m => {
     const next = { ...m }
@@ -57,27 +75,8 @@ export async function deleteColumn(id: number) {
   })
 }
 
-export async function selectBoard(id: number) {
-  activeBoardId.set(id)
-  const cols = await invoke<Column[]>('get_columns', { boardId: id })
-  columns.set(cols)
-  const cardMap: Record<number, Card[]> = {}
-  for (const col of cols) {
-    cardMap[col.id] = await invoke<Card[]>('get_cards', { columnId: col.id })
-  }
-  cardsByColumn.set(cardMap) // asign the cards based on column
-}
-
-export async function createColumn(boardId: number, name: string) {
-  const col = await invoke<Column>('create_column', { boardId, name })
-  if (col) {
-    columns.update(c => [...c, col])
-    cardsByColumn.update(m => ({...m, [col.id]: [] }))
-  }
-}
-
 export async function createCard(columnId: number, title: string) {
-  const card = await invoke<Card>('create_card', { columnId, title })
+  const card = await apiCreateCard(columnId, title)
   if (card) {
     cardsByColumn.update(m => ({
       ...m,
@@ -87,7 +86,7 @@ export async function createCard(columnId: number, title: string) {
 }
 
 export async function deleteCard(columnId: number, cardId: number) {
-  await invoke('delete_card', { id: cardId })
+  await apiDeleteCard(cardId)
   cardsByColumn.update(m => ({
     ...m,
     [columnId]: (m[columnId] ?? []).filter(c => c.id !== cardId),
@@ -100,8 +99,7 @@ export async function moveCard(
   toColumnId: number,
   newIndex: number,
 ) {
-  // move the card in the store first
-  // so the ui doesnt flicker when db call is happening
+  // Optimistic update first so UI doesn't flicker
   cardsByColumn.update(m => {
     const from = (m[fromColumnId] ?? []).filter(c => c.id !== cardId)
     const card = (m[fromColumnId] ?? []).find(c => c.id === cardId)
@@ -110,42 +108,33 @@ export async function moveCard(
     const to = fromColumnId === toColumnId
       ? from
       : [...(m[toColumnId] ?? [])]
-    to.splice(newIndex, 0, {...card, column_id: toColumnId })
-    return {
-      ...m,
-      [fromColumnId]: from,
-      [toColumnId]: to,
-    }
+    to.splice(newIndex, 0, { ...card, column_id: toColumnId })
+    return { ...m, [fromColumnId]: from, [toColumnId]: to }
   })
 
-  // persist to db
-  await invoke('move_card', {
-    id: cardId,
-    columnId: toColumnId,
-    position: newIndex,
-  })
+  await apiMoveCard(cardId, toColumnId, newIndex)
 
-  // check with db again to get clean pos
-  const updatedForm = await invoke<Card[]>('get_cards', { columnId: fromColumnId })
+  // Reconcile with server/db
+  const updatedFrom = await apiGetCards(fromColumnId)
   const updatedTo = fromColumnId === toColumnId
-    ? updatedForm
-    : await invoke<Card[]>('get_cards', { columnId: toColumnId })
+    ? updatedFrom
+    : await apiGetCards(toColumnId)
   cardsByColumn.update(m => ({
     ...m,
-    [fromColumnId]: updatedForm,
+    [fromColumnId]: updatedFrom,
     [toColumnId]: updatedTo,
   }))
 }
 
 export async function renameColumn(columnId: number, name: string) {
-  await invoke('rename_column', { id: columnId, name })
+  await apiRenameColumn(columnId, name)
   columns.update(cols =>
-    cols.map(c => c.id === columnId ? {...c, name } : c)
+    cols.map(c => c.id === columnId ? { ...c, name } : c)
   )
 }
 
 export async function updateColumnColor(columnId: number, color: string) {
-  await invoke('update_column_color', { id: columnId, color })
+  await apiUpdateColumnColor(columnId, color)
   columns.update(cols =>
     cols.map(c => c.id === columnId ? { ...c, color } : c)
   )
@@ -159,7 +148,7 @@ export async function updateCard(
   priority: string,
   due_date: string | null,
 ) {
-  await invoke('update_card', { id: cardId, title, description, priority, dueDate: due_date })
+  await apiUpdateCard(cardId, title, description, priority, due_date)
   cardsByColumn.update(m => ({
     ...m,
     [columnId]: (m[columnId] ?? []).map(c =>
@@ -169,21 +158,13 @@ export async function updateCard(
 }
 
 export async function renameCard(
-  columnId: number, 
-  cardId: number, 
-  title: string
+  columnId: number,
+  cardId: number,
+  title: string,
 ) {
-
   const existing = get(cardsByColumn)[columnId]?.find(c => c.id === cardId)
   if (!existing) return
-  
-  await invoke('update_card', {
-    id: cardId,
-    title,
-    description: existing.description,
-    priority: existing.priority,
-    due_date: existing.due_date,
-  })
+  await apiUpdateCard(cardId, title, existing.description, existing.priority, existing.due_date)
   cardsByColumn.update(m => ({
     ...m,
     [columnId]: (m[columnId] ?? []).map(c =>

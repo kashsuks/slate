@@ -1,5 +1,5 @@
-import { invoke } from '@tauri-apps/api/core'
 import { writable } from 'svelte/store'
+import { apiGetConfig, apiSetConfig } from '$lib/api'
 
 export type EnabledTools = {
     kanban: boolean
@@ -16,17 +16,17 @@ export const enabledTools = writable<EnabledTools>({
 })
 
 export async function isOnboardingComplete(): Promise<boolean> {
-    const val = await invoke<string | null>('get_config', { key: 'onboarding_complete' })
+    const val = await apiGetConfig('onboarding_complete')
     return val === 'true'
 }
 
 export async function completeOnboarding(tools: EnabledTools) {
-    await invoke('set_config', { key: 'onboarding_complete', value: 'true' })
-    await invoke('set_config', { key: 'enabled_tools', value: JSON.stringify(tools) })
+    await apiSetConfig('onboarding_compelete', 'true')
+    await apiSetConfig('enabled_tools', JSON.stringify(tools))
     enabledTools.set(tools)
 }
 
 export async function loadTools() {
-    const raw = await invoke<string | null>('get_config', { key: 'enabled_tools' })
+    const raw = await apiGetConfig('enabled_tools')
     if (raw) enabledTools.set(JSON.parse(raw))
 }
