@@ -22,7 +22,7 @@ pub async fn run(pool: DbPool, port: u16) {
         .route("/boards/:id", delete(boards::delete_board))
         //columns
         .route("/columns", post(columns::create_column))
-        .route("/columns/:board_id", get(column::get_column))
+        .route("/columns/:board_id", get(columns::get_columns))
         .route("/columns/:id/rename", put(columns::rename_column))
         .route("/columns/:id/color", put(columns::update_column_color))
         .route("/columns/:id", delete(columns::delete_column))
