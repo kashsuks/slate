@@ -1,0 +1,4 @@
+# Raise the cognitive complexity threshold
+# the default of 25 fires too often for match heavy Rust code
+
+cognitive-complexity-threshold = 30
