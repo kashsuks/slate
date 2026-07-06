@@ -2,16 +2,19 @@
 // so we use adapter-static with a fallback to index.html to put the site in SPA mode
 // See: https://svelte.dev/docs/kit/single-page-apps
 // See: https://v2.tauri.app/start/frontend/sveltekit/ for more info
-import adapter from "@sveltejs/adapter-static";
+import adapterStatic from "@sveltejs/adapter-static";
+import adapterNode from "@sveltejs/adapter-node";
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
+
+const isTauriMode = process.env.TAURI_ENV_PLATFORM !== undefined;
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
   preprocess: vitePreprocess(),
   kit: {
-    adapter: adapter({
-      fallback: "index.html",
-    }),
+    adapter: isTauriMode
+      ? adapterStatic({ fallback: "index.html" })
+      : adapterNode({ out: "frontend" }),
   },
 };
 
