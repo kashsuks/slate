@@ -28,4 +28,7 @@ r2d2_sqlite = "0.24"
 tokio = { version = "1", features = ["full"] }
 axum = { version = "0.7", features = ["json"] }
 tower-http = { version = "0.5", features = ["cors", "fs"] }
+bcrypt = "0.15"
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
 

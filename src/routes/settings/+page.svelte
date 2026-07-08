@@ -4,9 +4,11 @@
   import { onMount } from 'svelte'
   import { getServerUrl, checkConnection, isConnected } from '$lib/api'
 
+  type ConnectionStatus = 'idle' | 'checking' | 'connected' | 'unreachable'
+
   let darkMode = false
   let serverUrl = ''
-  let connectionStatus: 'idle' | 'checking' | 'connected' | 'unreachable' = 'idle'
+  let connectionStatus: ConnectionStatus = 'idle'
 
   onMount(async () => {
     darkMode = document.documentElement.classList.contains('dark')
@@ -34,14 +36,14 @@
     connectionStatus = ok ? 'connected' : 'unreachable'
   }
 
-  const statusLabel: Record<typeof connectionStatus, string> = {
+  const statusLabel: Record<ConnectionStatus, string> = {
     idle: '',
     checking: 'Checking...',
     connected: 'Connected',
     unreachable: 'Unreachable',
   }
 
-  const statusColor: Record<typeof connectionStatus, string> = {
+  const statusColor: Record<ConnectionStatus, string> = {
     idle: 'transparent',
     checking: 'var(--text-3)',
     connected: '#346538',

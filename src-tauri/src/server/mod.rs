@@ -1,9 +1,10 @@
+pub mod auth;
 pub mod boards;
 pub mod columns;
 pub mod cards;
 pub mod config;
 
-use axum::{Router, routing::{get, post, put, delete}};
+use axum::{Router, routing::{get, post, put, delete}, middleware};
 use tower_http::cors::{CorsLayer, Any};
 use tower_http::services::ServeDir;
 use crate::DbPool;
@@ -14,28 +15,43 @@ pub type SharedPool = Arc<DbPool>;
 pub async fn run(pool: DbPool, port: u16) {
     let shared = Arc::new(pool);
 
-    let api = Router::new()
-        //boards
+    // public routes that do not require auth
+    let public = Router::new()
+        .route("/auth/setup", post(auth::setup))
+        .route("/auth/login", post(auth::login))
+        .route("/auth/register", post(auth::register))
+        .with_state(shared.clone());
+
+    // Protected routes that require
+    // a valid session token
+    let protected = Router::new()
+        .route("/auth/logout", post(auth::logout))
+        .route("/auth/invite", post(auth::generate_invite))
         .route("/boards", get(boards::get_boards))
         .route("/boards", post(boards::create_board))
         .route("/boards/:id/rename", put(boards::rename_board))
         .route("/boards/:id", delete(boards::delete_board))
-        //columns
         .route("/columns", post(columns::create_column))
         .route("/columns/:board_id", get(columns::get_columns))
         .route("/columns/:id/rename", put(columns::rename_column))
         .route("/columns/:id/color", put(columns::update_column_color))
         .route("/columns/:id", delete(columns::delete_column))
-        //cards
         .route("/cards/:column_id", get(cards::get_cards))
         .route("/cards", post(cards::create_card))
         .route("/cards/:id", put(cards::update_card))
         .route("/cards/:id", delete(cards::delete_card))
         .route("/cards/:id/move", put(cards::move_card))
-        // config
         .route("/config/:key", get(config::get_config))
         .route("/config", post(config::set_config))
-        .with_state(shared)
+        .route_layer(middleware::from_fn_with_state(
+            shared.clone(),
+            auth::require_auth,
+        ))
+        .with_state(shared.clone());
+    
+    let api = Router::new()
+        .merge(public)
+        .merge(protected)
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)
@@ -45,8 +61,6 @@ pub async fn run(pool: DbPool, port: u16) {
 
     let app = Router::new()
         .nest("/api", api)
-        // Serve the built SvelteKit frontend from ./frontend
-        // (we'll populate this folder in the Dockerfile)
         .fallback_service(ServeDir::new("frontend"));
 
     let addr = format!("0.0.0.0:{}", port);
