@@ -1,13 +1,12 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, State, Extension},
     http::StatusCode,
     Json,
 };
 use serde::Deserialize;
-use crate::db::cards::{
-    Card, create_card as db_create_card, delete_card as db_delete_card,
-    get_cards as db_get_cards, move_card as db_move_card, update_card as db_update_card,
-};
+use crate::db::cards::{Card, get_cards, create_card, update_card, delete_card, move_card, get_board_id_for_card};
+use crate::db::boards::user_can_access_board;
+use crate::server::auth::AuthUser;
 use super::SharedPool;
 
 #[derive(Deserialize)]
@@ -58,23 +57,36 @@ fn validate_due_date(due_date: &Option<String>) -> bool {
 
 pub async fn get_cards(
     State(pool): State<SharedPool>,
+    Extension(auth): Extension<AuthUser>,
     Path(column_id): Path<i64>,
 ) -> Json<Vec<Card>> {
-    Json(db_get_cards(&pool, column_id))
+    let board_id = get_board_id_for_column(&pool, column_id)
+        .ok_or(StatusCode::NOT_FOUND)?;
+    if !user_can_access_board(&pool, board_id, auth.user_id) {
+        return Err(StatusCode::FORBIDDEN)
+    }
+    Ok(Json(get_cards(&pool, column_id)))
 }
 
 pub async fn create_card(
     State(pool): State<SharedPool>,
+    Extension(auth): Extension<AuthUser>,
     Json(body): Json<CreateCardBody>,
 ) -> Result<Json<Card>, StatusCode> {
     if !validate_title(&body.title) { return Err(StatusCode::UNPROCESSABLE_ENTITY) }
-    db_create_card(&pool, body.column_id, &body.title)
+    let board_id = get_board_id_for_column(&pool, body.column_id)
+        .ok_or(StatusCode::NOT_FOUND)?;
+    if !user_can_access_board(&pool, board_id, auth.user_id) {
+        return Err(StatusCode::FORBIDDEN)
+    }
+    create_card(&pool, body.column_id, &body.title)
         .map(Json)
         .ok_or(StatusCode::INTERNAL_SERVER_ERROR)
 }
 
 pub async fn update_card(
     State(pool): State<SharedPool>,
+    Extension(auth): Extension<AuthUser>,
     Path(id): Path<i64>,
     Json(body): Json<UpdateCardBody>,
 ) -> StatusCode {
@@ -82,7 +94,12 @@ pub async fn update_card(
     if !validate_description(&body.description) { return StatusCode::UNPROCESSABLE_ENTITY }
     if !validate_priority(&body.priority) { return StatusCode::UNPROCESSABLE_ENTITY }
     if !validate_due_date(&body.due_date) { return StatusCode::UNPROCESSABLE_ENTITY }
-    if db_update_card(&pool, id, &body.title, body.description, &body.priority, body.due_date) {
+    let board_id = match get_board_id_for_card(&pool, id) {
+        Some(b) => b,
+        None => return StatusCode::NOT_FOUND,
+    };
+    if !user_can_access_board(&pool, board_id, auth.user_id) { return StatusCode::FORBIDDEN }
+    if update_card(&pool, id, &body.title, body.description, &body.priority, body.due_date) {
         StatusCode::NO_CONTENT
     } else {
         StatusCode::INTERNAL_SERVER_ERROR
@@ -91,9 +108,15 @@ pub async fn update_card(
 
 pub async fn delete_card(
     State(pool): State<SharedPool>,
+    Extension(auth): Extension<AuthUser>,
     Path(id): Path<i64>,
 ) -> StatusCode {
-    if db_delete_card(&pool, id) {
+    let board_id = match get_board_id_for_card(&pool, id) {
+        Some(b) => b,
+        None => return StatusCode::NOT_FOUND,
+    }
+    if !user_can_access_board(&pool, board_id, auth.user_id) { return StatusCode::FORBIDDEN }
+    if delete_card(&pool, id) {
         StatusCode::NO_CONTENT
     } else {
         StatusCode::INTERNAL_SERVER_ERROR
@@ -102,11 +125,17 @@ pub async fn delete_card(
 
 pub async fn move_card(
     State(pool): State<SharedPool>,
+    Extension(auth): Extension<AuthUser>,
     Path(id): Path<i64>,
     Json(body): Json<MoveCardBody>,
 ) -> StatusCode {
     if body.position < 0 { return StatusCode::UNPROCESSABLE_ENTITY }
-    if db_move_card(&pool, id, body.column_id, body.position) {
+    let board_id = match get_board_id_for_card(&pool, id) {
+        Some(b) => b,
+        None => return StatusCode::NOT_FOUND,
+    }
+    if !user_can_access_board(&pool, board_id, auth.user_id) { return StatusCode::FORBIDDEN }
+    if move_card(&pool, id, body.column_id, body.position) {
         StatusCode::NO_CONTENT
     } else {
         StatusCode::INTERNAL_SERVER_ERROR

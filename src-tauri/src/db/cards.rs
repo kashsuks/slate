@@ -141,3 +141,14 @@ pub fn move_card(pool: &DbPool, id: i64, column_id: i64, position: i64) -> bool 
         }
     }
 }
+
+pub fn get_board_id_for_card(pool: &DbPool, card_id: i64) -> Option<i64> {
+    let Ok(db) = pool.get() else { return None };
+    db.query_row(
+        "SELECT c.board_id FROM cards ca
+         JOIN columns c ON c.id = ca.column_id
+         WHERE ca.id = ?1",
+        [card_id],
+        |row| row.get(0),
+    ).ok()
+}
