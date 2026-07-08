@@ -1,23 +1,24 @@
 <script lang="ts">
-  import type { Board } from "$lib/types"
   import ContextMenu from "./ContextMenu.svelte"
   import { renameBoard, deleteBoard } from "$lib/stores/board"
 
-  export let boards: { id: number; name: string }[] = []
+  type BoardListItem = { id: number; name: string }
+
+  export let boards: BoardListItem[] = []
   export let activeBoardId: number | null = null
   export let onSelect: (id: number) => void = () => {}
   export let onNewBoard: () => void = () => {}
 
-  let menu: { x: number; y: number; board: Board } | null = null
+  let menu: { x: number; y: number; board: BoardListItem } | null = null
   let renamingId: number | null = null
   let renameDraft = ''
 
-  function openMenu(e: MouseEvent, board: Board) {
+  function openMenu(e: MouseEvent, board: BoardListItem) {
     e.preventDefault()
     menu = { x: e.clientX, y: e.clientY, board }
   }
 
-  function startRename(board: Board) {
+  function startRename(board: BoardListItem) {
     renamingId = board.id
     renameDraft = board.name
   }
