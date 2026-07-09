@@ -4,7 +4,12 @@ use axum::{
     Json,
 };
 use serde::Deserialize;
-use crate::db::boards::{Board, get_boards, create_board, rename_board, delete_board, user_can_access_board, user_owns_board};
+use crate::db::boards::{
+    Board, get_boards as db_get_boards, create_board as db_create_board,
+    rename_board as db_rename_board, delete_board as db_delete_board,
+    user_can_access_board, user_owns_board,
+};
+use crate::server::auth::AuthUser;
 use super::SharedPool;
 
 #[derive(Deserialize)]
@@ -26,7 +31,7 @@ pub async fn get_boards(
     State(pool): State<SharedPool>,
     Extension(auth): Extension<AuthUser>,
 ) -> Json<Vec<Board>> {
-    Json(get_boards(&pool, Some(auth.user_id)))
+    Json(db_get_boards(&pool, Some(auth.user_id)))
 }
 
 pub async fn create_board(
@@ -35,7 +40,7 @@ pub async fn create_board(
     Json(body): Json<CreateBoardBody>,
 ) -> Result<Json<Board>, StatusCode> {
     if !validate_name(&body.name) { return Err(StatusCode::UNPROCESSABLE_ENTITY) }
-    create_board(&pool, &body.name, Some(auth.user_id))
+    db_create_board(&pool, &body.name, Some(auth.user_id))
         .map(Json)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
@@ -48,7 +53,7 @@ pub async fn rename_board(
 ) -> StatusCode {
     if !validate_name(&body.name) { return StatusCode::UNPROCESSABLE_ENTITY }
     if !user_can_access_board(&pool, id, auth.user_id) { return StatusCode::FORBIDDEN }
-    if rename_board(&pool, id, &body.name) {
+    if db_rename_board(&pool, id, &body.name) {
         StatusCode::NO_CONTENT
     } else {
         StatusCode::INTERNAL_SERVER_ERROR
@@ -62,7 +67,7 @@ pub async fn delete_board(
 ) -> StatusCode {
     // allow only the owners to delete
     if !user_owns_board(&pool, id, auth.user_id) { return StatusCode::FORBIDDEN }
-    if delete_board(&pool, id) {
+    if db_delete_board(&pool, id) {
         StatusCode::NO_CONTENT
     } else {
         StatusCode::INTERNAL_SERVER_ERROR

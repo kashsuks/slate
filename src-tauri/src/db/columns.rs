@@ -76,3 +76,12 @@ pub fn delete_column(pool: &DbPool, id: i64) -> bool {
     let Ok(db) = pool.get() else { return false };
     db.execute("DELETE FROM columns WHERE id = ?1", [id]).is_ok()
 }
+
+pub fn get_board_id_for_column(pool: &DbPool, column_id: i64) -> Option<i64> {
+    let Ok(db) = pool.get() else { return None };
+    db.query_row(
+        "SELECT board_id FROM columns WHERE id = ?1",
+        [column_id],
+        |row| row.get(0),
+    ).ok()
+}

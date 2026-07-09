@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub struct Board {
     pub id: i64,
     pub name: String,
+    pub owner_id: Option<i64>,
     pub position: i64,
     pub created_at: String,
 }
@@ -15,7 +16,7 @@ pub fn get_boards(pool: &DbPool, user_id: Option<i64>) -> Vec<Board> {
         Some(_) => "
             SELECT DISTINCT b.id, b.name, b.owner_id, b.position, b.created_at
             FROM boards b
-            LEFT JOIN board_members bm ON bm.board_id = id
+            LEFT JOIN board_members bm ON bm.board_id = b.id
             WHERE b.owner_id = ?1 OR bm.user_id = ?1
             ORDER BY b.position ASC",
         None => "
@@ -61,7 +62,7 @@ pub fn create_board(pool: &DbPool, name: &str, owner_id: Option<i64>) -> Result<
     }
 
     db.query_row(
-        "SELECT id, name, owner_id, position, created_at, FROM boards WHERE id = ?1", 
+        "SELECT id, name, owner_id, position, created_at FROM boards WHERE id = ?1",
         [id], 
         |row| Ok(Board {
             id: row.get(0)?,
