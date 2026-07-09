@@ -4,7 +4,12 @@ use axum::{
     Json,
 };
 use serde::Deserialize;
-use crate::db::cards::{Card, get_cards, create_card, update_card, delete_card, move_card, get_board_id_for_card};
+use crate::db::cards::{
+    Card, get_cards as db_get_cards, create_card as db_create_card,
+    update_card as db_update_card, delete_card as db_delete_card,
+    move_card as db_move_card, get_board_id_for_card,
+};
+use crate::db::columns::get_board_id_for_column;
 use crate::db::boards::user_can_access_board;
 use crate::server::auth::AuthUser;
 use super::SharedPool;
@@ -59,13 +64,13 @@ pub async fn get_cards(
     State(pool): State<SharedPool>,
     Extension(auth): Extension<AuthUser>,
     Path(column_id): Path<i64>,
-) -> Json<Vec<Card>> {
+) -> Result<Json<Vec<Card>>, StatusCode> {
     let board_id = get_board_id_for_column(&pool, column_id)
         .ok_or(StatusCode::NOT_FOUND)?;
     if !user_can_access_board(&pool, board_id, auth.user_id) {
         return Err(StatusCode::FORBIDDEN)
     }
-    Ok(Json(get_cards(&pool, column_id)))
+    Ok(Json(db_get_cards(&pool, column_id)))
 }
 
 pub async fn create_card(
@@ -79,7 +84,7 @@ pub async fn create_card(
     if !user_can_access_board(&pool, board_id, auth.user_id) {
         return Err(StatusCode::FORBIDDEN)
     }
-    create_card(&pool, body.column_id, &body.title)
+    db_create_card(&pool, body.column_id, &body.title)
         .map(Json)
         .ok_or(StatusCode::INTERNAL_SERVER_ERROR)
 }
@@ -99,7 +104,7 @@ pub async fn update_card(
         None => return StatusCode::NOT_FOUND,
     };
     if !user_can_access_board(&pool, board_id, auth.user_id) { return StatusCode::FORBIDDEN }
-    if update_card(&pool, id, &body.title, body.description, &body.priority, body.due_date) {
+    if db_update_card(&pool, id, &body.title, body.description, &body.priority, body.due_date) {
         StatusCode::NO_CONTENT
     } else {
         StatusCode::INTERNAL_SERVER_ERROR
@@ -114,9 +119,9 @@ pub async fn delete_card(
     let board_id = match get_board_id_for_card(&pool, id) {
         Some(b) => b,
         None => return StatusCode::NOT_FOUND,
-    }
+    };
     if !user_can_access_board(&pool, board_id, auth.user_id) { return StatusCode::FORBIDDEN }
-    if delete_card(&pool, id) {
+    if db_delete_card(&pool, id) {
         StatusCode::NO_CONTENT
     } else {
         StatusCode::INTERNAL_SERVER_ERROR
@@ -133,9 +138,9 @@ pub async fn move_card(
     let board_id = match get_board_id_for_card(&pool, id) {
         Some(b) => b,
         None => return StatusCode::NOT_FOUND,
-    }
+    };
     if !user_can_access_board(&pool, board_id, auth.user_id) { return StatusCode::FORBIDDEN }
-    if move_card(&pool, id, body.column_id, body.position) {
+    if db_move_card(&pool, id, body.column_id, body.position) {
         StatusCode::NO_CONTENT
     } else {
         StatusCode::INTERNAL_SERVER_ERROR

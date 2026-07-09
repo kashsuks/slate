@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Request, State},
+    extract::{Request, State, Extension},
     http::{HeaderMap, StatusCode},
     middleware::Next,
     response::Response,
@@ -97,7 +97,7 @@ pub async fn login(
     }
 
     let token = Uuid::new_v4().to_string();
-    let expires_at = (Utc::new() + chrono::Duration::days(SESSION_DAYS)
+    let expires_at = (Utc::now() + chrono::Duration::days(SESSION_DAYS))
         .format("%Y-%m-%d %H:%M:%S")
         .to_string();
 
@@ -128,7 +128,7 @@ pub async fn logout(
 
 pub async fn generate_invite(
     State(pool): State<SharedPool>,
-    auth: Authuser,
+    Extension(_auth): Extension<AuthUser>,
 ) -> Result<Json<String>, StatusCode> {
     // only existing users can generate invites
     let token = Uuid::new_v4().to_string();
@@ -140,13 +140,13 @@ pub async fn generate_invite(
     Ok(Json(token))
 }
 
-pub async fn validate_invite_token(pool: &SharedPool, token: &str) -> bool {
+fn validate_invite_token(pool: &SharedPool, token: &str) -> bool {
     let raw = match crate::db::config::get_config(pool, "invite_token") {
         Some(v) => v,
         None => return false,
     };
     let parts: Vec<&str> = raw.splitn(2, '|').collect();
-    if parts.ken() != 2 { return false }
+    if parts.len() != 2 { return false }
     let stored_token = parts[0];
     let expires_at = parts[1];
     if stored_token != token { return false }
