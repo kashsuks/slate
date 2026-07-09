@@ -1,13 +1,15 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, State, Extension},
     http::StatusCode,
     Json,
 };
 use serde::Deserialize;
 use crate::db::boards::{
-    Board, create_board as db_create_board, delete_board as db_delete_board,
-    get_boards as db_get_boards, rename_board as db_rename_board,
+    Board, get_boards as db_get_boards, create_board as db_create_board,
+    rename_board as db_rename_board, delete_board as db_delete_board,
+    user_can_access_board, user_owns_board,
 };
+use crate::server::auth::AuthUser;
 use super::SharedPool;
 
 #[derive(Deserialize)]
@@ -27,26 +29,30 @@ fn validate_name(name: &str) -> bool {
 
 pub async fn get_boards(
     State(pool): State<SharedPool>,
+    Extension(auth): Extension<AuthUser>,
 ) -> Json<Vec<Board>> {
-    Json(db_get_boards(&pool))
+    Json(db_get_boards(&pool, Some(auth.user_id)))
 }
 
 pub async fn create_board(
     State(pool): State<SharedPool>,
+    Extension(auth): Extension<AuthUser>,
     Json(body): Json<CreateBoardBody>,
 ) -> Result<Json<Board>, StatusCode> {
     if !validate_name(&body.name) { return Err(StatusCode::UNPROCESSABLE_ENTITY) }
-    db_create_board(&pool, &body.name)
+    db_create_board(&pool, &body.name, Some(auth.user_id))
         .map(Json)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
 pub async fn rename_board(
     State(pool): State<SharedPool>,
+    Extension(auth): Extension<AuthUser>,
     Path(id): Path<i64>,
     Json(body): Json<RenameBoardBody>,
 ) -> StatusCode {
     if !validate_name(&body.name) { return StatusCode::UNPROCESSABLE_ENTITY }
+    if !user_can_access_board(&pool, id, auth.user_id) { return StatusCode::FORBIDDEN }
     if db_rename_board(&pool, id, &body.name) {
         StatusCode::NO_CONTENT
     } else {
@@ -56,8 +62,11 @@ pub async fn rename_board(
 
 pub async fn delete_board(
     State(pool): State<SharedPool>,
+    Extension(auth): Extension<AuthUser>,
     Path(id): Path<i64>,
 ) -> StatusCode {
+    // allow only the owners to delete
+    if !user_owns_board(&pool, id, auth.user_id) { return StatusCode::FORBIDDEN }
     if db_delete_board(&pool, id) {
         StatusCode::NO_CONTENT
     } else {

@@ -15,17 +15,41 @@ pub fn init_db(pool: &DbPool) {
     let conn = pool.get().expect("Failed to get DB connection from pool");
     conn.execute_batch("
         PRAGMA journal_mode=WAL;
+        PRAGMA foreign_keys=ON;
 
         CREATE TABLE IF NOT EXISTS app_config (
             key TEXT PRIMARY KEY,
             value TEXT NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            token TEXT NOT NULL UNIQUE,
+            expires_at TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
         CREATE TABLE IF NOT EXISTS boards (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
+            owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
             position INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS board_members (
+            board_id INTEGER NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            role TEXT NOT NULL DEFAULT 'member',
+            PRIMARY KEY (board_id, user_id)
         );
 
         CREATE TABLE IF NOT EXISTS columns (
@@ -51,5 +75,8 @@ pub fn init_db(pool: &DbPool) {
     // Migrations: add columns that may be missing from older databases
     let _ = conn.execute_batch(
         "ALTER TABLE boards ADD COLUMN created_at TEXT NOT NULL DEFAULT (datetime('now'));"
+    );  
+    let _ = conn.execute_batch(
+        "ALTER TABLE boards ADD COLUMN owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL;"
     );
 }

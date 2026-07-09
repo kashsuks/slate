@@ -29,13 +29,14 @@ fn validate_name(name: &str) -> Result<(), String> {
 /// ```
 #[tauri::command]
 pub fn get_boards(state: State<AppState>) -> Vec<Board> {
-    db_get_boards(&state.db)
+    // Desktop/Tauri mode has no auth — pass None to get all boards
+    db_get_boards(&state.db, None)
 }
 
 #[tauri::command]
 pub fn create_board(name: String, state: State<AppState>) -> Result<Board, String> {
     validate_name(&name)?;
-    db_create_board(&state.db, &name)
+    db_create_board(&state.db, &name, None)
 }
 
 #[tauri::command]

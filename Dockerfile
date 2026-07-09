@@ -41,7 +41,7 @@ WORKDIR /slate
 
 COPY --from=backend /app/target/release/Slate ./Slate
 
-COPY --from-frontend /app/frontend ./frontend
+COPY --from=frontend /app/frontend ./frontend
 
 # data dir from the SQL
 RUN mkdir -p /data
