@@ -43,14 +43,19 @@ async function call<T>(
   const url = getServerUrl()
 
   if (url && _connected) {
-    // connected mode where we can talk to the server
+    // lazily import to avoid circular deps
+    const { getToken } = await import('./stores/auth')
+    const token = getToken()
+    const headers: Record<string, string> = {}
+    if (body) headers['Content-Type'] = 'application/json'
+    if (token) headers['Authorization'] = `Bearer ${token}`
+
     const res = await fetch(`${url}/api${path}`, {
       method: httpMethod,
-      headers: body ? { 'Content-Type': 'application/json' } : {},
+      headers,
       body: body ? JSON.stringify(body) : undefined,
     })
     if (!res.ok) throw new Error(`Server error: ${res.status}`)
-    // 204 No Content responses have no body
     if (res.status === 204) return undefined as T
     return res.json()
   }
@@ -167,6 +172,53 @@ export function apiMoveCard(id: number, columnId: number, position: number) {
     'move_card', { id, columnId, position },
     'PUT', `/cards/${id}/move`, { column_id: columnId, position }
   )
+}
+
+// auth related stuff
+
+export async function apiSetup(username: string, password: string) {
+  const url = getServerUrl()
+  const res = await fetch(`${url}/api/auth/setup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  })
+
+  if (!res.ok) throw new Error(`Setup failed: ${res.status}`)
+  return res.json() as Promise<{ token: string; user_id: number; username: string }>
+}
+
+export async function apiLogin(username: string, password: string) {
+  const url = getServerUrl()
+  const res = await fetch(`${url}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  })
+  if (!res.ok) throw new Error(`Login failed: ${res.status}`)
+  return res.json() as Promise<{ token: string; user_id: number; username: string }>
+}
+
+export async function apiRegister(username: string, password: string, inviteToken: string) {
+  const url = getServerUrl()
+  const res = await fetch(`${url}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, invite_token: inviteToken }),
+  })
+  if (!res.ok) throw new Error(`Register failed: ${res.status}`)
+  return res.json() as Promise<{ token: string; user_id: number; username: string }>
+}
+
+export async function apiGenerateInvite() {
+  const { getToken } = await import('./stores/auth')
+  const url = getServerUrl()
+  const res = await fetch(`${url}/api/auth/invite`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${getToken()}` },
+  })
+  if (!res.ok) throw new Error('Failed to generate invite')
+  return res.json() as Promise<string>
 }
 
 // config related stuff
