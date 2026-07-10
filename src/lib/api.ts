@@ -44,7 +44,7 @@ async function call<T>(
 
   if (url && _connected) {
     // lazily import to avoid circular deps
-    const { getToken } = await import('./stores/aut')
+    const { getToken } = await import('./stores/auth')
     const token = getToken()
     const headers: Record<string, string> = {}
     if (body) headers['Content-Type'] = 'application/json'
