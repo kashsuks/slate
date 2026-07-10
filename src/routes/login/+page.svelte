@@ -1,7 +1,4 @@
 <script lang="ts">
-    import { getServerUrl } from '$lib/api';
-
-  
   import { goto } from '$app/navigation'
   import { apiLogin, apiSetup, apiRegister, getServerUrl } from '$lib/api'
   import { saveAuth } from '$lib/stores/auth'
@@ -183,7 +180,7 @@
   }
 
   h1 {
-    'SF Pro Display', 'Helvetica Neue', sans-serif;
+    font-family: 'SF Pro Display', 'Helvetica Neue', sans-serif;
     font-size: 20px;
     font-weight: 500;
     letter-spacing: -0.02em;
