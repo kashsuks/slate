@@ -13,7 +13,7 @@ fn validate_title(title: &str) -> bool {
 }
 
 fn validate_description(desc: &Option<String>) -> bool {
-    desc.as_ref().map_or(true, |d| d.len() <= 10_000)
+    desc.as_ref().is_none_or(|d| d.len() <= 10_000)
 }
 
 fn validate_priority(priority: &str) -> bool {
@@ -21,7 +21,7 @@ fn validate_priority(priority: &str) -> bool {
 }
 
 fn validate_due_date(due_date: &Option<String>) -> bool {
-    due_date.as_ref().map_or(true, |d| {
+    due_date.as_ref().is_none_or(|d| {
         let parts: Vec<&str> = d.split('-').collect();
         parts.len() == 3
             && parts[0].len() == 4
