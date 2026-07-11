@@ -1,18 +1,18 @@
+use super::SharedPool;
+use crate::db::boards::user_can_access_board;
+use crate::db::columns::{
+    create_column as db_create_column, delete_column as db_delete_column, get_board_id_for_column,
+    get_columns as db_get_columns, rename_column as db_rename_column,
+    update_column_color as db_update_column_color, Column,
+};
+use crate::server::auth::AuthUser;
+use crate::server::ws::{broadcast_to_board, BoardChannels, WsEvent};
 use axum::{
-    extract::{Path, State, Extension},
+    extract::{Extension, Path, State},
     http::StatusCode,
     Json,
 };
 use serde::Deserialize;
-use crate::db::columns::{
-    Column, get_columns as db_get_columns, create_column as db_create_column,
-    rename_column as db_rename_column, update_column_color as db_update_column_color,
-    delete_column as db_delete_column, get_board_id_for_column,
-};
-use crate::db::boards::user_can_access_board;
-use crate::server::auth::AuthUser;
-use crate::server::ws::{BoardChannels, WsEvent, broadcast_to_board};
-use super::SharedPool;
 
 #[derive(Deserialize)]
 pub struct CreateColumnBody {
@@ -41,7 +41,7 @@ pub async fn get_columns(
     Path(board_id): Path<i64>,
 ) -> Result<Json<Vec<Column>>, StatusCode> {
     if !user_can_access_board(&pool, board_id, auth.user_id) {
-        return Err(StatusCode::FORBIDDEN)
+        return Err(StatusCode::FORBIDDEN);
     }
     Ok(Json(db_get_columns(&pool, board_id)))
 }
@@ -52,16 +52,22 @@ pub async fn create_column(
     Extension(channels): Extension<BoardChannels>,
     Json(body): Json<CreateColumnBody>,
 ) -> Result<Json<Column>, StatusCode> {
-    if !validate_name(&body.name) { return Err(StatusCode::UNPROCESSABLE_ENTITY) }
+    if !validate_name(&body.name) {
+        return Err(StatusCode::UNPROCESSABLE_ENTITY);
+    }
     if !user_can_access_board(&pool, body.board_id, auth.user_id) {
-        return Err(StatusCode::FORBIDDEN)
+        return Err(StatusCode::FORBIDDEN);
     }
     let col = db_create_column(&pool, body.board_id, &body.name)
         .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
-    broadcast_to_board(&channels, body.board_id, WsEvent::ColumnCreated { 
-        board_id: body.board_id, 
-        column: serde_json::to_value(&col).unwrap_or_default(), 
-    });
+    broadcast_to_board(
+        &channels,
+        body.board_id,
+        WsEvent::ColumnCreated {
+            board_id: body.board_id,
+            column: serde_json::to_value(&col).unwrap_or_default(),
+        },
+    );
     Ok(Json(col))
 }
 
@@ -72,18 +78,28 @@ pub async fn rename_column(
     Path(id): Path<i64>,
     Json(body): Json<RenameColumnBody>,
 ) -> StatusCode {
-    if !validate_name(&body.name) { return StatusCode::UNPROCESSABLE_ENTITY }
+    if !validate_name(&body.name) {
+        return StatusCode::UNPROCESSABLE_ENTITY;
+    }
     let board_id = match get_board_id_for_column(&pool, id) {
         Some(b) => b,
         None => return StatusCode::NOT_FOUND,
     };
-    if !user_can_access_board(&pool, board_id, auth.user_id) { return StatusCode::FORBIDDEN }
-    if !db_rename_column(&pool, id, &body.name) { return StatusCode::INTERNAL_SERVER_ERROR }
-    broadcast_to_board(&channels, board_id, WsEvent::ColumnRenamed { 
-        board_id, 
-        column_id: id, 
-        name: body.name.clone(), 
-    });
+    if !user_can_access_board(&pool, board_id, auth.user_id) {
+        return StatusCode::FORBIDDEN;
+    }
+    if !db_rename_column(&pool, id, &body.name) {
+        return StatusCode::INTERNAL_SERVER_ERROR;
+    }
+    broadcast_to_board(
+        &channels,
+        board_id,
+        WsEvent::ColumnRenamed {
+            board_id,
+            column_id: id,
+            name: body.name.clone(),
+        },
+    );
     StatusCode::NO_CONTENT
 }
 
@@ -98,13 +114,21 @@ pub async fn update_column_color(
         Some(b) => b,
         None => return StatusCode::NOT_FOUND,
     };
-    if !user_can_access_board(&pool, board_id, auth.user_id) { return StatusCode::FORBIDDEN }
-    if !db_update_column_color(&pool, id, &body.color) { return StatusCode::INTERNAL_SERVER_ERROR }
-    broadcast_to_board(&channels, board_id, WsEvent::ColumnColor { 
-        board_id, 
-        column_id: id, 
-        color: body.color.clone(), 
-    });
+    if !user_can_access_board(&pool, board_id, auth.user_id) {
+        return StatusCode::FORBIDDEN;
+    }
+    if !db_update_column_color(&pool, id, &body.color) {
+        return StatusCode::INTERNAL_SERVER_ERROR;
+    }
+    broadcast_to_board(
+        &channels,
+        board_id,
+        WsEvent::ColumnColor {
+            board_id,
+            column_id: id,
+            color: body.color.clone(),
+        },
+    );
     StatusCode::NO_CONTENT
 }
 
@@ -118,11 +142,19 @@ pub async fn delete_column(
         Some(b) => b,
         None => return StatusCode::NOT_FOUND,
     };
-    if !user_can_access_board(&pool, board_id, auth.user_id) { return StatusCode::FORBIDDEN }
-    if !db_delete_column(&pool, id) { return StatusCode::INTERNAL_SERVER_ERROR }
-    broadcast_to_board(&channels, board_id, WsEvent::ColumnDeleted { 
-        board_id, 
-        column_id: id
-    });
+    if !user_can_access_board(&pool, board_id, auth.user_id) {
+        return StatusCode::FORBIDDEN;
+    }
+    if !db_delete_column(&pool, id) {
+        return StatusCode::INTERNAL_SERVER_ERROR;
+    }
+    broadcast_to_board(
+        &channels,
+        board_id,
+        WsEvent::ColumnDeleted {
+            board_id,
+            column_id: id,
+        },
+    );
     StatusCode::NO_CONTENT
 }

@@ -41,19 +41,23 @@ pub fn create_column(pool: &DbPool, board_id: i64, name: &str) -> Option<Column>
     db.execute(
         "INSERT INTO columns (board_id, name, position) VALUES (?1, ?2, ?3)",
         rusqlite::params![board_id, name, position],
-    ).ok()?;
+    )
+    .ok()?;
     let id = db.last_insert_rowid();
     db.query_row(
         "SELECT id, board_id, name, position, color FROM columns WHERE id = ?1",
         [id],
-        |row| Ok(Column {
-            id: row.get(0)?,
-            board_id: row.get(1)?,
-            name: row.get(2)?,
-            position: row.get(3)?,
-            color: row.get(4)?,
-        }),
-    ).ok()
+        |row| {
+            Ok(Column {
+                id: row.get(0)?,
+                board_id: row.get(1)?,
+                name: row.get(2)?,
+                position: row.get(3)?,
+                color: row.get(4)?,
+            })
+        },
+    )
+    .ok()
 }
 
 pub fn rename_column(pool: &DbPool, id: i64, name: &str) -> bool {
@@ -61,7 +65,8 @@ pub fn rename_column(pool: &DbPool, id: i64, name: &str) -> bool {
     db.execute(
         "UPDATE columns SET name = ?1 WHERE id = ?2",
         rusqlite::params![name, id],
-    ).is_ok()
+    )
+    .is_ok()
 }
 
 pub fn update_column_color(pool: &DbPool, id: i64, color: &str) -> bool {
@@ -69,12 +74,14 @@ pub fn update_column_color(pool: &DbPool, id: i64, color: &str) -> bool {
     db.execute(
         "UPDATE columns SET color = ?1 WHERE id = ?2",
         rusqlite::params![color, id],
-    ).is_ok()
+    )
+    .is_ok()
 }
 
 pub fn delete_column(pool: &DbPool, id: i64) -> bool {
     let Ok(db) = pool.get() else { return false };
-    db.execute("DELETE FROM columns WHERE id = ?1", [id]).is_ok()
+    db.execute("DELETE FROM columns WHERE id = ?1", [id])
+        .is_ok()
 }
 
 pub fn get_board_id_for_column(pool: &DbPool, column_id: i64) -> Option<i64> {
@@ -83,5 +90,6 @@ pub fn get_board_id_for_column(pool: &DbPool, column_id: i64) -> Option<i64> {
         "SELECT board_id FROM columns WHERE id = ?1",
         [column_id],
         |row| row.get(0),
-    ).ok()
+    )
+    .ok()
 }

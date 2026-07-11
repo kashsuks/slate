@@ -1,15 +1,19 @@
 pub mod auth;
 pub mod boards;
-pub mod columns;
 pub mod cards;
+pub mod columns;
 pub mod config;
 pub mod ws;
 
-use axum::{Router, routing::{get, post, put, delete}, middleware};
-use tower_http::cors::{CorsLayer, Any};
-use tower_http::services::ServeDir;
 use crate::DbPool;
+use axum::{
+    middleware,
+    routing::{delete, get, post, put},
+    Router,
+};
 use std::sync::Arc;
+use tower_http::cors::{Any, CorsLayer};
+use tower_http::services::ServeDir;
 use ws::BoardChannels;
 
 pub type SharedPool = Arc<DbPool>;
@@ -56,7 +60,7 @@ pub async fn run(pool: DbPool, port: u16) {
         ))
         .with_state(shared.clone())
         .layer(axum::Extension(channels.clone()));
-    
+
     let api = Router::new()
         .merge(public)
         .merge(ws_router)
@@ -65,7 +69,7 @@ pub async fn run(pool: DbPool, port: u16) {
             CorsLayer::new()
                 .allow_origin(Any)
                 .allow_methods(Any)
-                .allow_headers(Any)
+                .allow_headers(Any),
         );
 
     let app = Router::new()

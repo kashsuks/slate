@@ -1,8 +1,8 @@
-use crate::AppState;
 use crate::db::cards::{
-    Card, create_card as db_create_card, delete_card as db_delete_card,
-    get_cards as db_get_cards, move_card as db_move_card, update_card as db_update_card,
+    create_card as db_create_card, delete_card as db_delete_card, get_cards as db_get_cards,
+    move_card as db_move_card, update_card as db_update_card, Card,
 };
+use crate::AppState;
 use tauri::State;
 
 const VALID_PRIORITIES: &[&str] = &["none", "low", "medium", "high"];
@@ -38,7 +38,9 @@ pub fn get_cards(column_id: i64, state: State<AppState>) -> Vec<Card> {
 
 #[tauri::command]
 pub fn create_card(column_id: i64, title: String, state: State<AppState>) -> Option<Card> {
-    if !validate_title(&title) { return None }
+    if !validate_title(&title) {
+        return None;
+    }
     db_create_card(&state.db, column_id, &title)
 }
 
@@ -51,10 +53,18 @@ pub fn update_card(
     due_date: Option<String>,
     state: State<AppState>,
 ) -> bool {
-    if !validate_title(&title) { return false }
-    if !validate_description(&description) { return false }
-    if !validate_priority(&priority) { return false }
-    if !validate_due_date(&due_date) { return false }
+    if !validate_title(&title) {
+        return false;
+    }
+    if !validate_description(&description) {
+        return false;
+    }
+    if !validate_priority(&priority) {
+        return false;
+    }
+    if !validate_due_date(&due_date) {
+        return false;
+    }
     db_update_card(&state.db, id, &title, description, &priority, due_date)
 }
 
@@ -65,6 +75,8 @@ pub fn delete_card(id: i64, state: State<AppState>) -> bool {
 
 #[tauri::command]
 pub fn move_card(id: i64, column_id: i64, position: i64, state: State<AppState>) -> bool {
-    if position < 0 { return false }
+    if position < 0 {
+        return false;
+    }
     db_move_card(&state.db, id, column_id, position)
 }

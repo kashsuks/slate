@@ -1,6 +1,6 @@
 pub mod boards;
-pub mod columns;
 pub mod cards;
+pub mod columns;
 pub mod config;
-pub mod users;
 pub mod sessions;
+pub mod users;

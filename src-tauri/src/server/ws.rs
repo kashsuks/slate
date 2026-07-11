@@ -41,15 +41,48 @@ pub fn broadcast_to_board(channels: &BoardChannels, board_id: i64, event: WsEven
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum WsEvent {
-    CardCreated { board_id: i64, card: serde_json::Value },
-    CardUpdated { board_id: i64, card: serde_json::Value },
-    CardDeleted { board_id: i64, card_id: i64, column_id: i64 },
-    CardMoved { board_id: i64, card_id: i64, from_column_id: i64, to_column_id: i64, position: i64 },
-    ColumnCreated { board_id: i64, column: serde_json::Value },
-    ColumnRenamed { board_id: i64, column_id: i64, name: String },
-    ColumnColor { board_id: i64, column_id: i64, color: String },
-    ColumnDeleted { board_id: i64, column_id: i64 },
-    BoardRenamed { board_id: i64, name: String },
+    CardCreated {
+        board_id: i64,
+        card: serde_json::Value,
+    },
+    CardUpdated {
+        board_id: i64,
+        card: serde_json::Value,
+    },
+    CardDeleted {
+        board_id: i64,
+        card_id: i64,
+        column_id: i64,
+    },
+    CardMoved {
+        board_id: i64,
+        card_id: i64,
+        from_column_id: i64,
+        to_column_id: i64,
+        position: i64,
+    },
+    ColumnCreated {
+        board_id: i64,
+        column: serde_json::Value,
+    },
+    ColumnRenamed {
+        board_id: i64,
+        column_id: i64,
+        name: String,
+    },
+    ColumnColor {
+        board_id: i64,
+        column_id: i64,
+        color: String,
+    },
+    ColumnDeleted {
+        board_id: i64,
+        column_id: i64,
+    },
+    BoardRenamed {
+        board_id: i64,
+        name: String,
+    },
 }
 
 // WebSocket handler and helpers
@@ -99,7 +132,7 @@ async fn handle_socket(mut socket: WebSocket, tx: broadcast::Sender<String>) {
         tokio::select! {
             // forward the broadcast events to this client
             Ok(msg) = rx.recv() => {
-                if socket.send(Message::Text(msg.into())).await.is_err() {
+                if socket.send(Message::Text(msg)).await.is_err() {
                     break;
                 }
             }
@@ -116,5 +149,5 @@ async fn handle_socket(mut socket: WebSocket, tx: broadcast::Sender<String>) {
         }
     }
 
-    drop(id); // connection closed
+    let _ = id; // connection closed
 }
