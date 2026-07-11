@@ -54,7 +54,7 @@ pub async fn run(pool: DbPool, port: u16) {
             shared.clone(),
             auth::require_auth,
         ))
-        .with_state(shared.clone());
+        .with_state(shared.clone())
         .layer(axum::Extension(channels.clone()));
     
     let api = Router::new()

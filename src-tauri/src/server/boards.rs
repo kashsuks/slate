@@ -4,7 +4,11 @@ use axum::{
     Json,
 };
 use serde::Deserialize;
-use crate::db::boards::{Board, get_boards, create_board, rename_board, delete_board, user_can_access_board, user_owns_board};
+use crate::db::boards::{
+    Board, get_boards as db_get_boards, create_board as db_create_board,
+    rename_board as db_rename_board, delete_board as db_delete_board,
+    user_can_access_board, user_owns_board,
+};
 use crate::server::auth::AuthUser;
 use crate::server::ws::{BoardChannels, WsEvent, broadcast_to_board};
 use super::SharedPool;
@@ -51,7 +55,7 @@ pub async fn rename_board(
 ) -> StatusCode {
     if !validate_name(&body.name) { return StatusCode::UNPROCESSABLE_ENTITY }
     if !user_can_access_board(&pool, id, auth.user_id) { return StatusCode::FORBIDDEN }
-    if !rename_board(&pool, id, &body.name) { return StatusCode::INTERNAL_SERVER_ERROR }
+    if !db_rename_board(&pool, id, &body.name) { return StatusCode::INTERNAL_SERVER_ERROR }
     broadcast_to_board(&channels, id, super::ws::WsEvent::BoardRenamed { 
         board_id: id, 
         name: body.name.clone(),

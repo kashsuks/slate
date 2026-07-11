@@ -4,7 +4,11 @@ use axum::{
     Json,
 };
 use serde::Deserialize;
-use crate::db::columns::{Column, get_columns, create_column, rename_column, update_column_color, delete_column, get_board_id_for_column};
+use crate::db::columns::{
+    Column, get_columns as db_get_columns, create_column as db_create_column,
+    rename_column as db_rename_column, update_column_color as db_update_column_color,
+    delete_column as db_delete_column, get_board_id_for_column,
+};
 use crate::db::boards::user_can_access_board;
 use crate::server::auth::AuthUser;
 use crate::server::ws::{BoardChannels, WsEvent, broadcast_to_board};
@@ -52,7 +56,7 @@ pub async fn create_column(
     if !user_can_access_board(&pool, body.board_id, auth.user_id) {
         return Err(StatusCode::FORBIDDEN)
     }
-    let col = create_column(&pool, body.board_id, &body.name)
+    let col = db_create_column(&pool, body.board_id, &body.name)
         .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
     broadcast_to_board(&channels, body.board_id, WsEvent::ColumnCreated { 
         board_id: body.board_id, 
@@ -74,7 +78,7 @@ pub async fn rename_column(
         None => return StatusCode::NOT_FOUND,
     };
     if !user_can_access_board(&pool, board_id, auth.user_id) { return StatusCode::FORBIDDEN }
-    if !rename_column(&pool, id, &body.name) { return StatusCode::INTERNAL_SERVER_ERROR }
+    if !db_rename_column(&pool, id, &body.name) { return StatusCode::INTERNAL_SERVER_ERROR }
     broadcast_to_board(&channels, board_id, WsEvent::ColumnRenamed { 
         board_id, 
         column_id: id, 
@@ -95,7 +99,7 @@ pub async fn update_column_color(
         None => return StatusCode::NOT_FOUND,
     };
     if !user_can_access_board(&pool, board_id, auth.user_id) { return StatusCode::FORBIDDEN }
-    if !update_column_color(&pool, id, &body.color) { return StatusCode::INTERNAL_SERVER_ERROR }
+    if !db_update_column_color(&pool, id, &body.color) { return StatusCode::INTERNAL_SERVER_ERROR }
     broadcast_to_board(&channels, board_id, WsEvent::ColumnColor { 
         board_id, 
         column_id: id, 
@@ -115,7 +119,7 @@ pub async fn delete_column(
         None => return StatusCode::NOT_FOUND,
     };
     if !user_can_access_board(&pool, board_id, auth.user_id) { return StatusCode::FORBIDDEN }
-    if !delete_column(&pool, id) { return StatusCode::INTERNAL_SERVER_ERROR }
+    if !db_delete_column(&pool, id) { return StatusCode::INTERNAL_SERVER_ERROR }
     broadcast_to_board(&channels, board_id, WsEvent::ColumnDeleted { 
         board_id, 
         column_id: id

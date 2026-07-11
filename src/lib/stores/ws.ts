@@ -55,6 +55,7 @@ function open(wsUrl: string) {
       handleEvent(event)
     } catch {
       console.warn('[slate ws] bad message]', e.data)
+    }
   }
 
   socket.onclose = () => {
@@ -81,7 +82,7 @@ function open(wsUrl: string) {
 
 function handleEvent(event: any) {
   switch (event.type) {
-    case 'card_crated': return onCardCreated(event)
+    case 'card_created': return onCardCreated(event)
     case 'card_updated': return onCardUpdated(event)
     case 'card_deleted': return onCardDeleted(event)
     case 'card_moved': return onCardMoved(event)
@@ -149,7 +150,7 @@ function onCardMoved(e: {
   })
 }
 
-function onColumnCreated(e: { column: Column {) {
+function onColumnCreated(e: { column: Column }) {
   columns.update(cols => {
     if (cols.some( c => c.id === e.column.id)) return cols
     return [...cols, e.column]

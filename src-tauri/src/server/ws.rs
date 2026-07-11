@@ -5,7 +5,7 @@ use axum::{
     },
     response::Response,
 };
-use dashmap::Dashmap;
+use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::broadcast;
@@ -106,7 +106,7 @@ async fn handle_socket(mut socket: WebSocket, tx: broadcast::Sender<String>) {
             // handle incoming messages from the client (ping/close)
             msg = socket.recv() => {
                 match msg {
-                    Some(Ok(Message::Close(_)) | None => break,
+                    Some(Ok(Message::Close(_))) | None => break,
                     Some(Ok(Message::Ping(data))) => {
                         let _ = socket.send(Message::Pong(data)).await;
                     }

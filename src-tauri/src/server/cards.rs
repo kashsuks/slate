@@ -4,7 +4,10 @@ use axum::{
     Json,
 };
 use serde::Deserialize;
-use crate::db::cards::{Card, get_cards, create_card, update_card, delete_card, move_card, get_board_id_for_card};
+use crate::db::cards::{
+    Card, get_cards as db_get_cards, create_card as db_create_card, update_card as db_update_card,
+    delete_card as db_delete_card, move_card as db_move_card, get_board_id_for_card,
+};
 use crate::db::columns::get_board_id_for_column;
 use crate::db::boards::user_can_access_board;
 use crate::server::auth::AuthUser;
@@ -73,6 +76,7 @@ pub async fn get_cards(
 pub async fn create_card(
     State(pool): State<SharedPool>,
     Extension(auth): Extension<AuthUser>,
+    Extension(channels): Extension<BoardChannels>,
     Json(body): Json<CreateCardBody>,
 ) -> Result<Json<Card>, StatusCode> {
     if !validate_title(&body.title) { return Err(StatusCode::UNPROCESSABLE_ENTITY) }
@@ -81,7 +85,7 @@ pub async fn create_card(
     if !user_can_access_board(&pool, board_id, auth.user_id) {
         return Err(StatusCode::FORBIDDEN)
     }
-    let card = create_card(&pool, body.column_id, &body.title)
+    let card = db_create_card(&pool, body.column_id, &body.title)
         .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
     broadcast_to_board(&channels, board_id, WsEvent::CardCreated { 
         board_id, 
@@ -93,6 +97,7 @@ pub async fn create_card(
 pub async fn update_card(
     State(pool): State<SharedPool>,
     Extension(auth): Extension<AuthUser>,
+    Extension(channels): Extension<BoardChannels>,
     Path(id): Path<i64>,
     Json(body): Json<UpdateCardBody>,
 ) -> StatusCode {
@@ -105,13 +110,10 @@ pub async fn update_card(
         None => return StatusCode::NOT_FOUND,
     };
     if !user_can_access_board(&pool, board_id, auth.user_id) { return StatusCode::FORBIDDEN }
-    if !update_card(&pool, id, &body.title, body.description.clone(), &body.priority, body.due_date.clone()) {
+    if !db_update_card(&pool, id, &body.title, body.description.clone(), &body.priority, body.due_date.clone()) {
         return StatusCode::INTERNAL_SERVER_ERROR
     }
-    // fetch the updated card to broadcast full state
-    let cards = crate::db::cards::get_cards(&pool, 0);
-    let _ = cards; // we broadcast a lighweight event instead
-    broadcast_to_board(&channels, board_id, WsEvent::CardUpdated { 
+    broadcast_to_board(&channels, board_id, WsEvent::CardUpdated {
         board_id, 
         card: serde_json::json!({
             "id": id,
@@ -135,10 +137,10 @@ pub async fn delete_card(
         None => return StatusCode::NOT_FOUND,
     };
     // get column id before deleting so we can broadcast
-    let columns_id = crate::db::cards::get_column_id_for_card(&pool, id)
+    let column_id = crate::db::cards::get_column_id_for_card(&pool, id)
         .unwrap_or(0);
     if !user_can_access_board(&pool, board_id, auth.user_id) { return StatusCode::FORBIDDEN }
-    if !delete_card(&pool, id) { return StatusCode::INTERNAL_SERVER_ERROR }
+    if !db_delete_card(&pool, id) { return StatusCode::INTERNAL_SERVER_ERROR }
     broadcast_to_board(&channels, board_id, WsEvent::CardDeleted { 
         board_id, 
         card_id: id, 
@@ -162,7 +164,7 @@ pub async fn move_card(
     let from_column_id = crate::db::cards::get_column_id_for_card(&pool, id)
         .unwrap_or(body.column_id);
     if !user_can_access_board(&pool, board_id, auth.user_id) { return StatusCode::FORBIDDEN }
-    if !move_card(&pool, id, body.column_id, body.position) {
+    if !db_move_card(&pool, id, body.column_id, body.position) {
         return StatusCode::INTERNAL_SERVER_ERROR
     }
     broadcast_to_board(&channels, board_id, WsEvent::CardMoved { 
