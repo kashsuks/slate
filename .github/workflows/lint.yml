@@ -61,4 +61,4 @@ jobs:
 
       - name: Rustfmt
         working-directory: src-tauri
-        run: cargo fmt --al -- --check
+        run: cargo fmt --all -- --check

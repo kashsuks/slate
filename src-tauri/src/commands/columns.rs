@@ -1,9 +1,9 @@
-use crate::AppState;
 use crate::db::columns::{
-    Column, create_column as db_create_column, delete_column as db_delete_column,
+    create_column as db_create_column, delete_column as db_delete_column,
     get_columns as db_get_columns, rename_column as db_rename_column,
-    update_column_color as db_update_column_color,
+    update_column_color as db_update_column_color, Column,
 };
+use crate::AppState;
 use tauri::State;
 
 fn validate_name(name: &str) -> bool {
@@ -30,13 +30,17 @@ pub fn get_columns(board_id: i64, state: State<AppState>) -> Vec<Column> {
 
 #[tauri::command]
 pub fn create_column(board_id: i64, name: String, state: State<AppState>) -> Option<Column> {
-    if !validate_name(&name) { return None }
+    if !validate_name(&name) {
+        return None;
+    }
     db_create_column(&state.db, board_id, &name)
 }
 
 #[tauri::command]
 pub fn rename_column(id: i64, name: String, state: State<AppState>) -> bool {
-    if !validate_name(&name) { return false }
+    if !validate_name(&name) {
+        return false;
+    }
     db_rename_column(&state.db, id, &name)
 }
 

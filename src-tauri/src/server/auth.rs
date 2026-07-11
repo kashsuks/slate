@@ -1,17 +1,17 @@
+use super::SharedPool;
+use crate::db::sessions::{create_session, delete_session, validate_token};
+use crate::db::users::{create_user, get_user_by_username, has_any_users, username_exists};
 use axum::{
-    extract::{Request, State, Extension},
+    extract::{Extension, Request, State},
     http::{HeaderMap, StatusCode},
     middleware::Next,
     response::Response,
     Json,
 };
-use serde::{Deserialize, Serialize};
 use bcrypt::{hash, verify, DEFAULT_COST};
-use uuid::Uuid;
 use chrono::Utc;
-use crate::db::users::{create_user, get_user_by_username, username_exists, has_any_users};
-use crate::db::sessions::{create_session, validate_token, delete_session};
-use super::SharedPool;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 const SESSION_DAYS: i64 = 30;
 
@@ -44,8 +44,7 @@ pub struct AuthUser {
 fn validate_credentials(username: &str, password: &str) -> bool {
     let u = username.trim();
     let p = password.trim();
-    !u.is_empty() && u.len() <= 32
-        && !p.is_empty() && p.len() >= 8 && p.len() <= 128
+    !u.is_empty() && u.len() <= 32 && !p.is_empty() && p.len() >= 8 && p.len() <= 128
 }
 
 // Routes
@@ -55,10 +54,10 @@ pub async fn setup(
     Json(body): Json<RegisterBody>,
 ) -> Result<Json<AuthResponse>, StatusCode> {
     if has_any_users(&pool) {
-        return Err(StatusCode::FORBIDDEN)
+        return Err(StatusCode::FORBIDDEN);
     }
     if !validate_credentials(&body.username, &body.password) {
-        return Err(StatusCode::UNPROCESSABLE_ENTITY)
+        return Err(StatusCode::UNPROCESSABLE_ENTITY);
     }
     register_user(&pool, &body.username, &body.password).await
 }
@@ -71,13 +70,13 @@ pub async fn register(
     // validate the invite token
     let token = body.invite_token.as_deref().unwrap_or("");
     if !validate_invite_token(&pool, token) {
-        return Err(StatusCode::FORBIDDEN)
+        return Err(StatusCode::FORBIDDEN);
     }
     if !validate_credentials(&body.username, &body.password) {
-        return Err(StatusCode::UNPROCESSABLE_ENTITY)
+        return Err(StatusCode::UNPROCESSABLE_ENTITY);
     }
     if username_exists(&pool, &body.username) {
-        return Err(StatusCode::CONFLICT)
+        return Err(StatusCode::CONFLICT);
     }
     register_user(&pool, &body.username, &body.password).await
 }
@@ -86,14 +85,13 @@ pub async fn login(
     State(pool): State<SharedPool>,
     Json(body): Json<LoginBody>,
 ) -> Result<Json<AuthResponse>, StatusCode> {
-    let record = get_user_by_username(&pool, &body.username)
-        .ok_or(StatusCode::UNAUTHORIZED)?;
+    let record = get_user_by_username(&pool, &body.username).ok_or(StatusCode::UNAUTHORIZED)?;
 
     let valid = verify(&body.password, &record.password_hash)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     if !valid {
-        return Err(StatusCode::UNAUTHORIZED)
+        return Err(StatusCode::UNAUTHORIZED);
     }
 
     let token = Uuid::new_v4().to_string();
@@ -111,10 +109,7 @@ pub async fn login(
     }))
 }
 
-pub async fn logout(
-    State(pool): State<SharedPool>,
-    headers: HeaderMap,
-) -> StatusCode {
+pub async fn logout(State(pool): State<SharedPool>, headers: HeaderMap) -> StatusCode {
     if let Some(token) = extract_token(&headers) {
         delete_session(&pool, &token);
     }
@@ -146,10 +141,14 @@ fn validate_invite_token(pool: &SharedPool, token: &str) -> bool {
         None => return false,
     };
     let parts: Vec<&str> = raw.splitn(2, '|').collect();
-    if parts.len() != 2 { return false }
+    if parts.len() != 2 {
+        return false;
+    }
     let stored_token = parts[0];
     let expires_at = parts[1];
-    if stored_token != token { return false }
+    if stored_token != token {
+        return false;
+    }
     // check expiry
     let now = Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
     expires_at > now.as_str()
@@ -182,16 +181,15 @@ async fn register_user(
     username: &str,
     password: &str,
 ) -> Result<Json<AuthResponse>, StatusCode> {
-    let password_hash = hash(password, DEFAULT_COST)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let user = create_user(pool, username, &password_hash)
-        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+    let password_hash =
+        hash(password, DEFAULT_COST).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let user =
+        create_user(pool, username, &password_hash).ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
     let token = Uuid::new_v4().to_string();
     let expires_at = (Utc::now() + chrono::Duration::days(SESSION_DAYS))
         .format("%Y-%m-%d %H:%M:%S")
         .to_string();
-    create_session(pool, user.id, &token, &expires_at)
-        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+    create_session(pool, user.id, &token, &expires_at).ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(AuthResponse {
         token,
         user_id: user.id,

@@ -1,8 +1,8 @@
-use crate::AppState;
 use crate::db::boards::{
-    Board, create_board as db_create_board, delete_board as db_delete_board,
-    get_boards as db_get_boards, rename_board as db_rename_board,
+    create_board as db_create_board, delete_board as db_delete_board, get_boards as db_get_boards,
+    rename_board as db_rename_board, Board,
 };
+use crate::AppState;
 use tauri::State;
 
 fn validate_name(name: &str) -> Result<(), String> {
@@ -41,7 +41,9 @@ pub fn create_board(name: String, state: State<AppState>) -> Result<Board, Strin
 
 #[tauri::command]
 pub fn rename_board(id: i64, name: String, state: State<AppState>) -> bool {
-    if validate_name(&name).is_err() { return false }
+    if validate_name(&name).is_err() {
+        return false;
+    }
     db_rename_board(&state.db, id, &name)
 }
 

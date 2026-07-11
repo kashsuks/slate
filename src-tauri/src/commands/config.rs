@@ -1,5 +1,5 @@
-use crate::AppState;
 use crate::db::config::{get_config as db_get_config, set_config as db_set_config};
+use crate::AppState;
 use tauri::State;
 
 #[tauri::command]

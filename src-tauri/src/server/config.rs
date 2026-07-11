@@ -1,11 +1,11 @@
+use super::SharedPool;
+use crate::db::config::{get_config as db_get_config, set_config as db_set_config};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     Json,
 };
 use serde::Deserialize;
-use crate::db::config::{get_config as db_get_config, set_config as db_set_config};
-use super::SharedPool;
 
 #[derive(Deserialize)]
 pub struct SetConfigBody {

@@ -17,8 +17,10 @@ pub fn get_cards(pool: &DbPool, column_id: i64) -> Vec<Card> {
     let Ok(db) = pool.get() else { return vec![] };
     let Ok(mut stmt) = db.prepare(
         "SELECT id, column_id, title, description, priority, due_date, position, created_at
-        FROM cards WHERE column_id = ?1 ORDER BY position ASC"
-    ) else { return vec![] };
+        FROM cards WHERE column_id = ?1 ORDER BY position ASC",
+    ) else {
+        return vec![];
+    };
     stmt.query_map([column_id], |row| {
         Ok(Card {
             id: row.get(0)?,
@@ -48,7 +50,8 @@ pub fn create_card(pool: &DbPool, column_id: i64, title: &str) -> Option<Card> {
     db.execute(
         "INSERT INTO cards (column_id, title, position) VALUES (?1, ?2, ?3)",
         rusqlite::params![column_id, title, position],
-    ).ok()?;
+    )
+    .ok()?;
     let id = db.last_insert_rowid();
     db.query_row(
         "SELECT id, column_id, title, description, priority, due_date, position, created_at FROM cards WHERE id = ?1",
@@ -78,7 +81,8 @@ pub fn update_card(
     db.execute(
         "UPDATE cards SET title = ?1, description = ?2, priority = ?3, due_date = ?4 WHERE id = ?5",
         rusqlite::params![title, description, priority, due_date, id],
-    ).is_ok()
+    )
+    .is_ok()
 }
 
 pub fn delete_card(pool: &DbPool, id: i64) -> bool {
@@ -114,7 +118,8 @@ pub fn move_card(pool: &DbPool, id: i64, column_id: i64, position: i64) -> bool 
         db.execute(
             "UPDATE cards SET position = ?1 WHERE id = ?2",
             rusqlite::params![position, id],
-        ).is_ok()
+        )
+        .is_ok()
     } else {
         let tx = match db.unchecked_transaction() {
             Ok(t) => t,
@@ -137,7 +142,10 @@ pub fn move_card(pool: &DbPool, id: i64, column_id: i64, position: i64) -> bool 
         })();
         match ok {
             Ok(_) => tx.commit().is_ok(),
-            Err(_) => { let _ = tx.rollback(); false }
+            Err(_) => {
+                let _ = tx.rollback();
+                false
+            }
         }
     }
 }
@@ -150,5 +158,16 @@ pub fn get_board_id_for_card(pool: &DbPool, card_id: i64) -> Option<i64> {
          WHERE ca.id = ?1",
         [card_id],
         |row| row.get(0),
-    ).ok()
+    )
+    .ok()
+}
+
+pub fn get_column_id_for_card(pool: &DbPool, card_id: i64) -> Option<i64> {
+    let Ok(db) = pool.get() else { return None };
+    db.query_row(
+        "SELECT column_id FROM cards WHERE id = ?1",
+        [card_id],
+        |row| row.get(0),
+    )
+    .ok()
 }

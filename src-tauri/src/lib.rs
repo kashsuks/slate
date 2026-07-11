@@ -13,7 +13,8 @@ pub struct AppState {
 
 pub fn init_db(pool: &DbPool) {
     let conn = pool.get().expect("Failed to get DB connection from pool");
-    conn.execute_batch("
+    conn.execute_batch(
+        "
         PRAGMA journal_mode=WAL;
         PRAGMA foreign_keys=ON;
 
@@ -70,13 +71,15 @@ pub fn init_db(pool: &DbPool) {
             position INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
-    ").expect("DB init failed");
+    ",
+    )
+    .expect("DB init failed");
 
     // Migrations: add columns that may be missing from older databases
     let _ = conn.execute_batch(
-        "ALTER TABLE boards ADD COLUMN created_at TEXT NOT NULL DEFAULT (datetime('now'));"
-    );  
+        "ALTER TABLE boards ADD COLUMN created_at TEXT NOT NULL DEFAULT (datetime('now'));",
+    );
     let _ = conn.execute_batch(
-        "ALTER TABLE boards ADD COLUMN owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL;"
+        "ALTER TABLE boards ADD COLUMN owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL;",
     );
 }

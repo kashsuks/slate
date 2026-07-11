@@ -1,8 +1,8 @@
-use tauri_app_lib::{AppState, DbPool, init_db};
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
-use tauri::Manager;
 use std::path::PathBuf;
+use tauri::Manager;
+use tauri_app_lib::{init_db, AppState, DbPool};
 
 fn build_pool(db_path: PathBuf) -> DbPool {
     let manager = SqliteConnectionManager::file(db_path);
