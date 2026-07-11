@@ -4,13 +4,10 @@ use axum::{
     Json,
 };
 use serde::Deserialize;
-use crate::db::columns::{
-    Column, get_columns as db_get_columns, create_column as db_create_column,
-    rename_column as db_rename_column, update_column_color as db_update_column_color,
-    delete_column as db_delete_column, get_board_id_for_column,
-};
+use crate::db::columns::{Column, get_columns, create_column, rename_column, update_column_color, delete_column, get_board_id_for_column};
 use crate::db::boards::user_can_access_board;
 use crate::server::auth::AuthUser;
+use crate::server::ws::{BoardChannels, WsEvent, broadcast_to_board};
 use super::SharedPool;
 
 #[derive(Deserialize)]
@@ -48,20 +45,26 @@ pub async fn get_columns(
 pub async fn create_column(
     State(pool): State<SharedPool>,
     Extension(auth): Extension<AuthUser>,
+    Extension(channels): Extension<BoardChannels>,
     Json(body): Json<CreateColumnBody>,
 ) -> Result<Json<Column>, StatusCode> {
     if !validate_name(&body.name) { return Err(StatusCode::UNPROCESSABLE_ENTITY) }
     if !user_can_access_board(&pool, body.board_id, auth.user_id) {
         return Err(StatusCode::FORBIDDEN)
     }
-    db_create_column(&pool, body.board_id, &body.name)
-        .map(Json)
-        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)
+    let col = create_column(&pool, body.board_id, &body.name)
+        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+    broadcast_to_board(&channels, body.board_id, WsEvent::ColumnCreated { 
+        board_id: body.board_id, 
+        column: serde_json::to_value(&col).unwrap_or_default(), 
+    });
+    Ok(Json(col))
 }
 
 pub async fn rename_column(
     State(pool): State<SharedPool>,
     Extension(auth): Extension<AuthUser>,
+    Extension(channels): Extension<BoardChannels>,
     Path(id): Path<i64>,
     Json(body): Json<RenameColumnBody>,
 ) -> StatusCode {
@@ -71,16 +74,19 @@ pub async fn rename_column(
         None => return StatusCode::NOT_FOUND,
     };
     if !user_can_access_board(&pool, board_id, auth.user_id) { return StatusCode::FORBIDDEN }
-    if db_rename_column(&pool, id, &body.name) {
-        StatusCode::NO_CONTENT
-    } else {
-        StatusCode::INTERNAL_SERVER_ERROR
-    }
+    if !rename_column(&pool, id, &body.name) { return StatusCode::INTERNAL_SERVER_ERROR }
+    broadcast_to_board(&channels, board_id, WsEvent::ColumnRenamed { 
+        board_id, 
+        column_id: id, 
+        name: body.name.clone(), 
+    });
+    StatusCode::NO_CONTENT
 }
 
 pub async fn update_column_color(
     State(pool): State<SharedPool>,
     Extension(auth): Extension<AuthUser>,
+    Extension(channels): Extension<BoardChannels>,
     Path(id): Path<i64>,
     Json(body): Json<UpdateColorBody>,
 ) -> StatusCode {
@@ -89,16 +95,19 @@ pub async fn update_column_color(
         None => return StatusCode::NOT_FOUND,
     };
     if !user_can_access_board(&pool, board_id, auth.user_id) { return StatusCode::FORBIDDEN }
-    if db_update_column_color(&pool, id, &body.color) {
-        StatusCode::NO_CONTENT
-    } else {
-        StatusCode::INTERNAL_SERVER_ERROR
-    }
+    if !update_column_color(&pool, id, &body.color) { return StatusCode::INTERNAL_SERVER_ERROR }
+    broadcast_to_board(&channels, board_id, WsEvent::ColumnColor { 
+        board_id, 
+        column_id: id, 
+        color: body.color.clone(), 
+    });
+    StatusCode::NO_CONTENT
 }
 
 pub async fn delete_column(
     State(pool): State<SharedPool>,
     Extension(auth): Extension<AuthUser>,
+    Extension(channels): Extension<BoardChannels>,
     Path(id): Path<i64>,
 ) -> StatusCode {
     let board_id = match get_board_id_for_column(&pool, id) {
@@ -106,9 +115,10 @@ pub async fn delete_column(
         None => return StatusCode::NOT_FOUND,
     };
     if !user_can_access_board(&pool, board_id, auth.user_id) { return StatusCode::FORBIDDEN }
-    if db_delete_column(&pool, id) {
-        StatusCode::NO_CONTENT
-    } else {
-        StatusCode::INTERNAL_SERVER_ERROR
-    }
+    if !delete_column(&pool, id) { return StatusCode::INTERNAL_SERVER_ERROR }
+    broadcast_to_board(&channels, board_id, WsEvent::ColumnDeleted { 
+        board_id, 
+        column_id: id
+    });
+    StatusCode::NO_CONTENT
 }

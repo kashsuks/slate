@@ -36,9 +36,11 @@ export async function deleteBoard(id: number) {
   boards.update(b => b.filter(board => board.id !== id))
   const remaining = get(boards)
   if (get(activeBoardId) === id) {
+    const { disconnect } = await import('./ws')
     if (remaining.length > 0) {
       await selectBoard(remaining[0].id)
     } else {
+      disconnect()
       activeBoardId.set(null)
       columns.set([])
       cardsByColumn.set({})
@@ -55,6 +57,9 @@ export async function selectBoard(id: number) {
     cardMap[col.id] = await apiGetCards(col.id)
   }
   cardsByColumn.set(cardMap)
+
+  const { connectToBoard } = await import('./ws')
+  connectToBoard(id)
 }
 
 export async function createColumn(boardId: number, name: string) {

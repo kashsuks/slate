@@ -3,17 +3,20 @@ pub mod boards;
 pub mod columns;
 pub mod cards;
 pub mod config;
+pub mod ws;
 
 use axum::{Router, routing::{get, post, put, delete}, middleware};
 use tower_http::cors::{CorsLayer, Any};
 use tower_http::services::ServeDir;
 use crate::DbPool;
 use std::sync::Arc;
+use ws::BoardChannels;
 
 pub type SharedPool = Arc<DbPool>;
 
 pub async fn run(pool: DbPool, port: u16) {
     let shared = Arc::new(pool);
+    let channels: BoardChannels = ws::new_board_channels();
 
     // public routes that do not require auth
     let public = Router::new()
@@ -21,6 +24,10 @@ pub async fn run(pool: DbPool, port: u16) {
         .route("/auth/login", post(auth::login))
         .route("/auth/register", post(auth::register))
         .with_state(shared.clone());
+
+    let ws_router = Router::new()
+        .route("/ws/:board_id", get(ws::ws_handler))
+        .with_state((shared.clone(), channels.clone()));
 
     // Protected routes that require
     // a valid session token
@@ -48,9 +55,11 @@ pub async fn run(pool: DbPool, port: u16) {
             auth::require_auth,
         ))
         .with_state(shared.clone());
+        .layer(axum::Extension(channels.clone()));
     
     let api = Router::new()
         .merge(public)
+        .merge(ws_router)
         .merge(protected)
         .layer(
             CorsLayer::new()

@@ -152,3 +152,12 @@ pub fn get_board_id_for_card(pool: &DbPool, card_id: i64) -> Option<i64> {
         |row| row.get(0),
     ).ok()
 }
+
+pub fn get_column_id_for_card(pool: &DbPool, card_id: i64) -> Option<i64> {
+    let Ok(db) = pool.get() else { return None };
+    db.query_row(
+        "SELECT column_id FROM cards WHERE id = /1", 
+        [card_id], 
+        |row| row.get(0),
+    ).ok()
+}
