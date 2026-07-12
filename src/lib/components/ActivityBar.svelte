@@ -1,7 +1,36 @@
 <script lang="ts">
+  import { onMount, onDestroy } from "svelte"
+  import { getServerUrl, isConnected, checkConnection } from "$lib/api"
+
   export let active: string = 'kanban'
   export let onKanban: () => void = () => {}
   export let onSettings: () => void = () => {}
+
+  let connected = false
+  let serverUrl: string | null = null
+  let pollInterval: ReturnType<typeof setInterval> | null = null
+
+  onMount(async () => {
+    serverUrl = getServerUrl()
+    connected = isConnected()
+
+    // recheck every 10s so the dot updates if the server goes down
+    if (serverUrl) {
+      pollInterval = setInterval(async () => {
+        connected = await checkConnection()
+      }, 10_000)
+    }
+  })
+
+  onDestroy(() => {
+    if (pollInterval) clearInterval(pollInterval)
+  })
+
+  $: tooltipText = !serverUrl
+    ? 'Standalone - no server configured'
+    : connected
+      ? `Connected · ${serverUrl}`
+      : `Unreachable · ${serverUrl}`
 </script>
 
 <nav class="activity-bar">
@@ -30,6 +59,18 @@
     >
       <img src="/icons/settings.svg" alt="Settings" width="18" height="18" class="icon-asset" />
     </button>
+
+    <div class="status-wrap">
+      <div
+        class="status-dot"
+	class:connected
+	class:standalone={!serverUrl}
+      ></div>
+      <div class="status-tooltip">
+        <span class="tootlip-dot" class:connected class:standalone={!serverUrl}></span>
+	{tooltipText}
+      </div>
+    </div>
   </div>
 </nav>
 
@@ -101,6 +142,78 @@
 .icon-btn:hover .icon-asset,
 .icon-btn.active .icon-asset {
   opacity: 1;
+}
+
+.status-wrap {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #BBBAB6;
+  transition: background 300ms;
+  flex-shrink: 0;
+}
+
+.status-dot.connected {
+  background: #346538;
+}
+
+.status-dot:not(.connected):not(.standalone) {
+  background: #9F2F2D;
+}
+
+.status-tooltip {
+  positon: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateX(26px);
+  background: #FFFFFF;
+  border: 1px solid #EAEAEA;
+  border-radius: 6px;
+  padding: 7px 10px;
+  white-space: nowrap;
+  font-size: 11px;
+  font-family: 'Geist Mono', 'SF Mono', monospace;
+  color: #787774;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 150ms, transform 150ms;
+  transform-origin: bottom left;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.);
+  z-index: 100;
+}
+
+.status-wrap:hover .status-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateX(26px) translateY(-2px);
+}
+
+.tooltip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #BBBAB6;
+  flex-shrink: 0;
+}
+
+.tooltip-dot.connected {
+  background: #346538;
+}
+
+.tooltip-dot:not(.connected):not(.standalone) {
+  background: #9F2F2D;
 }
 
 </style>
