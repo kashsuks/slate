@@ -178,6 +178,13 @@
           use:focusInput
         />
       </div>
+    {:else if localCards.length === 0}
+      <div class="empty-cards">
+        <span>No cards yet</span>
+	<button class="empty-add" on:click={() => (adding = true)}>
+	  Add one
+	</button>
+      </div>
     {/if}
   </div>
 
@@ -371,5 +378,40 @@
   width: 0;
   flex: 1;
   min-width: 0;
+}
+
+.empty-cards {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  margin: 2px 0;
+}
+
+.empty-cards span {
+  font-size: 11px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+.empty-add {
+  font-size: 11px;
+  font-family: var(--font-sans);
+  color: var(--text-3);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: border-color 120ms, color 120ms;
+}
+
+.empty-add:hover {
+  border-color: var(--text-1);
+  color: var(--text-1);
 }
 </style>

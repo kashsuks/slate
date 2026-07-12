@@ -77,7 +77,16 @@
 	{/if}
       </li>
     {:else}
-      <li class="empty-hint">No boards yet.</li>
+      <li class="empty-boards">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+	  <rect x="3" y="5" width="6" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/>
+	  <rect x="12" y="5" width="6" height="9" rx="2" stroke="currentColor" stroke-width="1.4"/>
+	</svg>
+	<span>No boards yet</span>
+	<button class="empty-boards-cta" on:click={onNewBoard}>
+	  Create one
+        </button>
+      </li>
     {/each}
   </ul>
 
@@ -191,11 +200,46 @@
   background: var(--text-1);
 }
 
-.empty-hint {
-  font-size: 12px;
+.empty-boards {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 12px;
   color: var(--text-3);
-  padding: 6px 8px;
-  font-style: italic;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  margin: 4px 0;
+}
+
+.empty-boards svg {
+  color: var(--text-3);
+  opacity: 0.5;
+}
+
+.empty-boards span {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-3);
+  letter-spacing: 0.02em;
+}
+
+.empty-boards-cta {
+  font-size: 11px;
+  font-family: var(--font-sans);
+  color: var(--text-3);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: border-color 120ms, color 120ms;
+  margin-top: 2px;
+}
+
+.empty-boards-cta:hover {
+  border-color: var(--text-1);
+  color: var(--text-1);
 }
 
 .rename-input {

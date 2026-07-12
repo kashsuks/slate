@@ -53,7 +53,17 @@ addingColumn = false
 <main class="content">
   {#if !activeBoard}
     <div class="empty-state">
-      <p>Select or create a board.</p>
+      <div class="empty-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+	  <rect x="3" y="5" width="6" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/>
+	  <rect x="12" y="5" width="6" height="9" rx="2" stroke="currentColor"	stroke-width="1.4"/>
+	</svg>
+      </div>
+      <p class="empty-title">No boards yet</p>
+      <p class="empty-sub">Create a board to start organising your work.</p>
+      <button class="empty-cta" on:click={() => (showNewBoard = true)}>
+        Create board
+      </button>
     </div>
   {:else}
     <div class="board-header">
@@ -80,6 +90,19 @@ addingColumn = false
             use:focusInput
           />
         </div>
+      {:else if $columns.length === 0}
+        <div class="empty-columns">
+	  <div class="empty-icon">
+	    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+	      <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+	    </svg>
+	  </div>
+	  <p class="empty-title">This board is empty</p>
+	  <p class="empty-sub">Add a column to start tracking work.</p>
+	  <button class="empty-cta" on:click={() => (addingColumn = true)}>
+	    Add column
+	  </button>
+	</div>
       {:else}
         <button class="add-column-btn" on:click={() => (addingColumn = true)}>
           <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
@@ -106,10 +129,74 @@ addingColumn = false
 .empty-state {
   flex: 1;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.empty-columns {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 320px;
+  padding: 48px 32px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  margin: auto 0;
+}
+
+.empty-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-3);
+  margin-bottom: 4px;
+}
+
+.empty-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-1);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.empty-sub {
+  font-size: 12px;
+  color: var(--text-3);
+  text-align: center;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.empty-cta {
+  margin-top: 6px;
+  padding: 8px 16px;
+  background: #111111;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
   font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background 150ms, transform 80ms;
+}
+
+.empty-cta:hover {
+  background: #333333;
+}
+
+.empty-cta:active {
+  transform: scale(0.98);
 }
 
 .board-header {
