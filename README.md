@@ -14,6 +14,8 @@ Currently under active development, not yet stable. Once ready for beta testing,
 
 ## Standalone (desktop app)
 
+Download it [here](https://github.com/kashsuks/slate/releases)
+
 The standalone version is a Tauri desktop app with its own embedded SQLite database, no server required.
 
 Requirements: [Bun](https://bun.sh), [Rust](https://www.rust-lang.org/tools/install), and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS.
