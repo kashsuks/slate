@@ -77,6 +77,12 @@ Press `?` in the app anytime to bring up the shortcuts overlay. Current shortcut
 - This project is pre-beta: expect schema/data-format changes between commits until a release is tagged.
 - The standalone and server builds share the same Rust backend and SQLite schema, but keep separate databases, moving between them isn't automatic.
 
+## Notable Stuff
+
+- Clicking on the cards allows you to add a description, due-date, and change priority
+- Pressing `?` opens up a shortcuts view
+- You can host a slate server on any machine as long as you have docker installed and you follow the instructions on the readme with the repository installed
+
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first
