@@ -5,19 +5,28 @@ import {
   apiGetColumns, apiCreateColumn, apiRenameColumn, apiUpdateColumnColor, apiDeleteColumn,
   apiGetCards, apiCreateCard, apiUpdateCard, apiDeleteCard, apiMoveCard,
 } from '$lib/api'
+import { walk } from 'svelte/compiler'
 
 export const boards = writable<Board[]>([])
 export const activeBoardId = writable<number | null>(null)
 export const columns = writable<Column[]>([])
 export const cardsByColumn = writable<Record<number, Card[]>>({})
+export const loadingBoards = writable<boolean>(false)
+export const loadingBoard = writable<boolean>(false)
 
 export async function loadBoards() {
-  const result = await apiGetBoards()
-  boards.set(result)
-  if (result.length > 0 && get(activeBoardId) === null) {
-    await selectBoard(result[0].id)
+  loadingBoards.set(true)
+  try {
+    const result = await apiGetBoards()
+    boards.set(result)
+    if (result.length > 0 && get(activeBoardId) === null) {
+      await selectBoard(result[0].id)
+    }
+  } finally {
+    loadingBoards.set(false)
   }
 }
+
 
 export async function createBoard(name: string) {
   const board = await apiCreateBoard(name)
@@ -50,16 +59,20 @@ export async function deleteBoard(id: number) {
 
 export async function selectBoard(id: number) {
   activeBoardId.set(id)
-  const cols = await apiGetColumns(id)
-  columns.set(cols)
-  const cardMap: Record<number, Card[]> = {}
-  for (const col of cols) {
-    cardMap[col.id] = await apiGetCards(col.id)
-  }
-  cardsByColumn.set(cardMap)
+  loadingBoard.set(true)
+  try {
+    const cols = await apiGetColumns(id)
+    columns.set(cols)
+    for (const col of cols) {
+      cardMap[col.id] = await apiGetCards(col.id)
+    }
+    cardsByColumn.set(cardMap)
 
-  const { connectToBoard } = await import('./ws')
-  connectToBoard(id)
+    const { connectToBoard } = await import('./ws')
+    connectToBoard(id)
+  } finally {
+    loadingBoard.set(false)
+  }
 }
 
 export async function createColumn(boardId: number, name: string) {

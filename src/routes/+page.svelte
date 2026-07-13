@@ -4,6 +4,7 @@ import { goto } from '$app/navigation'
 import ActivityBar from '$lib/components/ActivityBar.svelte'
 import Sidebar from '$lib/components/Sidebar.svelte'
 import KanbanColumn from '$lib/components/KanbanColumn.svelte';
+import SkeletonBoard from '$lib/components/SkeletonBoard.svelte';
 import NewBoardModal from '$lib/components/NewBoardModal.svelte';
 import CardModal from '$lib/components/CardModal.svelte';
 import {
@@ -13,7 +14,9 @@ columns,
 cardsByColumn,
 loadBoards,
 selectBoard,
-createColumn
+createColumn,
+loadingBoards,
+loadingBoard,
 } from '$lib/stores/board'
 
 let showNewBoard = false
@@ -48,6 +51,7 @@ addingColumn = false
   activeBoardId={$activeBoardId}
   onSelect={selectBoard}
   onNewBoard={() => (showNewBoard = true)}
+  loading={$loadingBoards}
 />
 
 <main class="content">
@@ -65,7 +69,12 @@ addingColumn = false
         Create board
       </button>
     </div>
-  {:else}
+  {:else if $loadingBoard}
+    <div class="board-header skeleton-header-bar">
+      <div class="skeleton-block" style="width: 140x; height: 18px; border-radius: 5px;"></div>
+    </div>
+    <SkeletonBoard />
+  {:else if activeBoard}
     <div class="board-header">
       <h1>{activeBoard.name}</h1>
     </div>
@@ -202,6 +211,21 @@ addingColumn = false
 .board-header {
   padding: 28px 32px 16px;
   border-bottom: 1px solid var(--border);
+}
+
+.skeleton-header-bar {
+  display: flex;
+  align-items: center;
+}
+
+.skeleton-block {
+  background: var(--border);
+  animation: pulse 1.4x ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1 }
+  50% { opacity: 0.4 }
 }
 
 .board-header h1 {

@@ -1,5 +1,6 @@
 <script lang="ts">
   import ContextMenu from "./ContextMenu.svelte"
+  import SkeletonSidebar from "./SkeletonSidebar.svelte"
   import { renameBoard, deleteBoard } from "$lib/stores/board"
 
   type BoardListItem = { id: number; name: string }
@@ -8,6 +9,7 @@
   export let activeBoardId: number | null = null
   export let onSelect: (id: number) => void = () => {}
   export let onNewBoard: () => void = () => {}
+  export let loading: boolean = false
 
   let menu: { x: number; y: number; board: BoardListItem } | null = null
   let renamingId: number | null = null
@@ -50,6 +52,9 @@
     </button>
   </div>
 
+  {#if loading}
+    <SkeletonSidebar />
+  {:else}
   <ul class="board-list">
     {#each boards as board (board.id)}
       <li>
@@ -89,6 +94,7 @@
       </li>
     {/each}
   </ul>
+  {/if}
 
 {#if menu}
   <ContextMenu
