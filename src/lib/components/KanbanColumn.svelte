@@ -8,6 +8,7 @@
 
   import { dndzone, TRIGGERS } from 'svelte-dnd-action'
   import { flip } from 'svelte/animate'
+  import { onMount, onDestroy } from 'svelte'
 
   export let column: Column
   export let cards: Card[] = []
@@ -16,6 +17,21 @@
 
   let adding = false
   let newTitle = ''
+
+  function handleAddCard(e: Event) {
+    const detail = (e as CustomEvent).detail
+    if (detail.columnId === column.id) {
+      adding = true
+    }
+  }
+
+  onMount(() => {
+    window.addEventListener('slate:add-card', handleAddCard)
+  })
+
+  onDestroy(() => {
+    window.removeEventListener('slate:add-card', handleAddCard)
+  })
   let renamingColumn = false
   let columnDraft = ''
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { onMount } from 'svelte';
+import { onMount, onDestroy } from 'svelte';
 import { goto } from '$app/navigation'
 import ActivityBar from '$lib/components/ActivityBar.svelte'
 import Sidebar from '$lib/components/Sidebar.svelte'
@@ -7,6 +7,8 @@ import KanbanColumn from '$lib/components/KanbanColumn.svelte';
 import SkeletonBoard from '$lib/components/SkeletonBoard.svelte';
 import NewBoardModal from '$lib/components/NewBoardModal.svelte';
 import CardModal from '$lib/components/CardModal.svelte';
+import ShortcutsTrigger from '$lib/components/ShortcutsTrigger.svelte';
+import ShortcutsOverlay from '$lib/components/ShortcutsOverlay.svelte';
 import {
 boards,
 activeBoardId,
@@ -23,13 +25,76 @@ let showNewBoard = false
 let addingColumn = false
 let newColumnName = ''
 let activeCard: import('$lib/types').Card | null = null
+let showShortcuts = false
+
+// Column targeted by N+<number> - set on N keydown, cleared after
+let nKeyHeld = false
+let nKeyTimer: ReturnType<typeof setTimeout> | null = null
 
 function focusInput(node: HTMLElement) {
 node.focus()
 }
 
+function isTyping(): boolean {
+const el = document.activeElement
+if (!el) return false
+const tag = el.tagName.toLowerCase()
+return tag === 'input' || tag === 'textarea' || (el as HTMLElement).isContentEditable
+}
+
+function handleKeydown(e: KeyboardEvent) {
+if (isTyping()) return
+
+if (e.key === '?') {
+showShortcuts = !showShortcuts
+return
+}
+
+if (e.key === 'Escape') {
+showShortcuts = false
+showNewBoard = false
+addingColumn = false
+activeCard = null
+return
+}
+
+if (e.key === 'b' || e.key === 'B') {
+showNewBoard = true
+return
+}
+
+if (e.key === 'c' || e.key === 'C') {
+if ($activeBoardId !== null) addingColumn = true
+return
+}
+
+if (e.key === 'n' || e.key === 'N') {
+nKeyHeld = true
+if (nKeyTimer) clearTimeout(nKeyTimer)
+nKeyTimer = setTimeout(() => { nKeyHeld = false }, 1500)
+return
+}
+
+if (nKeyHeld && /^[1-9]$/.test(e.key)) {
+const colIndex = parseInt(e.key) - 1
+const col = $columns[colIndex]
+if (col) {
+window.dispatchEvent(new CustomEvent('slate:add-card', { detail: { columnId: col.id } }))
+}
+nKeyHeld = false
+if (nKeyTimer) clearTimeout(nKeyTimer)
+return
+}
+}
+
 onMount(() => {
 loadBoards()
+window.addEventListener('keydown', handleKeydown)
+})
+
+onDestroy(() => {
+window.removeEventListener('keydown', handleKeydown)
+if (nKeyTimer) clearTimeout(nKeyTimer)
 })
 
 $: activeBoard = $boards.find(b => b.id === $activeBoardId)
@@ -126,6 +191,11 @@ addingColumn = false
 
 <NewBoardModal bind:open={showNewBoard} />
 <CardModal card={activeCard} onClose={() => (activeCard = null)} />
+
+<ShortcutsTrigger onClick={() => (showShortcuts = !showShortcuts)} />
+{#if showShortcuts}
+  <ShortcutsOverlay onClose={() => (showShortcuts = false)} />
+{/if}
 
 <style>
 .content {
