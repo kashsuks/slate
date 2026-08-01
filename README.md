@@ -8,6 +8,8 @@ Slate is a selfhosted suite of project management tools. Oh also its FOSS!
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri-24C8DB?logo=tauri&logoColor=white)](https://tauri.app)
 [![Built with Svelte](https://img.shields.io/badge/built%20with-Svelte-FF3E00?logo=svelte&logoColor=white)](https://svelte.dev)
 
+<img width="1512" height="948" alt="Screenshot 2026-08-01 at 5 34 36 PM" src="https://github.com/user-attachments/assets/35d58022-52c1-47b8-8842-9c87286b9e66" />
+
 ## Status
 
 Currently under active development, not yet stable. Once ready for beta testing, desktop builds will be published on GitHub Releases and the server image on Docker.
