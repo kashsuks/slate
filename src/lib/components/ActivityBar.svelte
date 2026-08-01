@@ -77,7 +77,7 @@
 <style>
 .activity-bar {
   width: 60px;
-  height: 100vh;
+  height: 100%;
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;

@@ -114,7 +114,7 @@
 <style>
 .sidebar {
   width: 260px;
-  height: 100vh;
+  height: 100%;
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
