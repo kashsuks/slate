@@ -3,7 +3,17 @@ import { invoke } from '@tauri-apps/api/core'
 // return the server url from localStorage, or null if standalone mode
 export function getServerUrl(): string | null {
   const url = localStorage.getItem('serverUrl')
-  return url && url.trim() !== '' ? url.trim() : null
+  if (url && url.trim() !== '') return url.trim()
+
+  // Outside of the Tauri desktop shell there is no local IPC/db to fall
+  // back to - this is the self-hosted "site", which always serves the
+  // built frontend and the /api routes from the same origin. Default to
+  // that instead of leaving the app with nowhere to send requests.
+  if (!isTauri() && typeof window !== 'undefined') {
+    return window.location.origin
+  }
+
+  return null
 }
 
 export function isTauri(): boolean {
@@ -15,7 +25,7 @@ export function isConnected(): boolean {
   return _connected
 }
 
-// ping the serverto see if its reachable
+// ping the server to see if its reachable
 // call this on app startup and when the user saves a new server URL
 export async function checkConnection(): Promise<boolean> {
   const url = getServerUrl()
@@ -24,12 +34,24 @@ export async function checkConnection(): Promise<boolean> {
     return false
   }
   try {
-    const res = await fetch(`${url}/api/boards`, { signal: AbortSignal.timeout(3000) })
+    // /auth/status is public (no login required), unlike /boards - using
+    // an authenticated route here made every logged-out visitor look
+    // "unreachable" even when the server was up.
+    const res = await fetch(`${url}/api/auth/status`, { signal: AbortSignal.timeout(3000) })
     _connected = res.ok
   } catch {
     _connected = false
   }
   return _connected
+}
+
+// check whether the server has any users yet - used to decide whether
+// to show account setup (first run) or the normal login form
+export async function apiAuthStatus(): Promise<{ has_users: boolean }> {
+  const url = getServerUrl()
+  const res = await fetch(`${url}/api/auth/status`, { signal: AbortSignal.timeout(3000) })
+  if (!res.ok) throw new Error(`Status check failed: ${res.status}`)
+  return res.json()
 }
 
 // code dispatcher - use fetch() if connected, invoke() if standalone

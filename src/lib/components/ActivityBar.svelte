@@ -67,7 +67,7 @@
 	class:standalone={!serverUrl}
       ></div>
       <div class="status-tooltip">
-        <span class="tootlip-dot" class:connected class:standalone={!serverUrl}></span>
+        <span class="tooltip-dot" class:connected class:standalone={!serverUrl}></span>
 	{tooltipText}
       </div>
     </div>
@@ -172,7 +172,7 @@
 }
 
 .status-tooltip {
-  positon: absolute;
+  position: absolute;
   bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%) translateX(26px);
@@ -191,7 +191,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   z-index: 100;
 }
 

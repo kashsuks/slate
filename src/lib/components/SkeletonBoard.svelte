@@ -84,7 +84,7 @@
 .skeleton-block {
   border-radius: 4px;
   background: var(--border);
-  animation: pulse 1.4x ease-in-out infinite;
+  animation: pulse 1.4s ease-in-out infinite;
   flex-shrink: 0;
 }
 

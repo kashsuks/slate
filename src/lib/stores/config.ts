@@ -21,7 +21,7 @@ export async function isOnboardingComplete(): Promise<boolean> {
 }
 
 export async function completeOnboarding(tools: EnabledTools) {
-    await apiSetConfig('onboarding_compelete', 'true')
+    await apiSetConfig('onboarding_complete', 'true')
     await apiSetConfig('enabled_tools', JSON.stringify(tools))
     enabledTools.set(tools)
 }

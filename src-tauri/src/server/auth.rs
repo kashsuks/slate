@@ -47,7 +47,21 @@ fn validate_credentials(username: &str, password: &str) -> bool {
     !u.is_empty() && u.len() <= 32 && !p.is_empty() && p.len() >= 8 && p.len() <= 128
 }
 
+#[derive(Serialize)]
+pub struct StatusResponse {
+    pub has_users: bool,
+}
+
 // Routes
+
+// Public, unauthenticated endpoint so the frontend can tell whether
+// this is a fresh server (show account setup) or an existing one
+// (show login) - also doubles as a lightweight connectivity check.
+pub async fn status(State(pool): State<SharedPool>) -> Json<StatusResponse> {
+    Json(StatusResponse {
+        has_users: has_any_users(&pool),
+    })
+}
 
 pub async fn setup(
     State(pool): State<SharedPool>,

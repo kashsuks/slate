@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
-  import { apiLogin, apiSetup, apiRegister, getServerUrl } from '$lib/api'
+  import { onMount } from 'svelte'
+  import { apiLogin, apiSetup, apiRegister, apiAuthStatus, getServerUrl } from '$lib/api'
   import { saveAuth } from '$lib/stores/auth'
 
   // mode: login, setup, register
@@ -10,6 +11,18 @@
   import { page } from '$app/stores'
   $: inviteToken = $page.url.searchParams.get('invite') ?? ''
   $: if (inviteToken) mode = 'register'
+
+  // On a brand-new server there's no account yet and (until now) no way
+  // to reach the setup form - detect that and switch modes automatically.
+  onMount(async () => {
+    if (inviteToken) return
+    try {
+      const status = await apiAuthStatus()
+      if (!status.has_users) mode = 'setup'
+    } catch {
+      // if the check fails, fall back to the normal login form
+    }
+  })
 
   let username = ''
   let password = ''
@@ -60,7 +73,7 @@
       saveAuth(result.token, result.user_id, result.username)
       goto('/')
     } catch (e: any) {
-       if (e.message.inludes('401')) error = 'Incorrect username or password.'
+       if (e.message.includes('401')) error = 'Incorrect username or password.'
        else if (e.message.includes('409')) error = 'Username already taken.'
        else if (e.message.includes('403')) error = 'Invalid or expired invite link.'
        else error = 'Something went wrong. Check your connection.'

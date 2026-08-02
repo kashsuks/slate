@@ -17,7 +17,7 @@
     <span class="panel-title">Keyboard shortcuts</span>
     <button class="close-btn" on:click={onClose}>
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-        <path d="M4 4116 16M20 4L4 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M4 4L20 20M20 4L4 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
     </button>
   </div>

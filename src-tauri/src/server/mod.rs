@@ -7,16 +7,52 @@ pub mod ws;
 
 use crate::DbPool;
 use axum::{
+    body::Body,
+    extract::Request,
+    http::{header, StatusCode},
     middleware,
+    response::{IntoResponse, Response},
     routing::{delete, get, post, put},
     Router,
 };
 use std::sync::Arc;
+use tower::ServiceExt;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::services::ServeDir;
 use ws::BoardChannels;
 
 pub type SharedPool = Arc<DbPool>;
+
+// Serves the built SPA shell (index.html) with an honest 200 status.
+async fn spa_shell() -> Response {
+    match tokio::fs::read_to_string("frontend/index.html").await {
+        Ok(html) => (
+            StatusCode::OK,
+            [(header::CONTENT_TYPE, "text/html; charset=utf-8")],
+            html,
+        )
+            .into_response(),
+        Err(_) => (StatusCode::NOT_FOUND, "frontend build not found").into_response(),
+    }
+}
+
+// Serves real static files from frontend/ (JS/CSS/images, with correct
+// content types, caching headers etc.), and falls back to the SPA shell
+// for any path that isn't an actual file on disk (e.g. /settings,
+// /login, /onboarding) so SvelteKit's client-side router can take over.
+//
+// Note: ServeDir::not_found_service() looks like the obvious tool for
+// this, but it hardcodes a 404 status on whatever it's given regardless
+// of what the fallback service actually returns - harmless in a real
+// browser, but not honest HTTP. Driving ServeDir manually here keeps
+// real static files exactly as they were while giving unmatched routes
+// a genuine 200.
+async fn spa_fallback(req: Request) -> Response {
+    match ServeDir::new("frontend").oneshot(req).await {
+        Ok(res) if res.status() != StatusCode::NOT_FOUND => res.map(Body::new),
+        _ => spa_shell().await,
+    }
+}
 
 pub async fn run(pool: DbPool, port: u16) {
     let shared = Arc::new(pool);
@@ -24,6 +60,7 @@ pub async fn run(pool: DbPool, port: u16) {
 
     // public routes that do not require auth
     let public = Router::new()
+        .route("/auth/status", get(auth::status))
         .route("/auth/setup", post(auth::setup))
         .route("/auth/login", post(auth::login))
         .route("/auth/register", post(auth::register))
@@ -43,11 +80,11 @@ pub async fn run(pool: DbPool, port: u16) {
         .route("/boards/:id/rename", put(boards::rename_board))
         .route("/boards/:id", delete(boards::delete_board))
         .route("/columns", post(columns::create_column))
-        .route("/columns/:board_id", get(columns::get_columns))
+        .route("/columns/:id", get(columns::get_columns))
         .route("/columns/:id/rename", put(columns::rename_column))
         .route("/columns/:id/color", put(columns::update_column_color))
         .route("/columns/:id", delete(columns::delete_column))
-        .route("/cards/:column_id", get(cards::get_cards))
+        .route("/cards/:id", get(cards::get_cards))
         .route("/cards", post(cards::create_card))
         .route("/cards/:id", put(cards::update_card))
         .route("/cards/:id", delete(cards::delete_card))
@@ -74,7 +111,7 @@ pub async fn run(pool: DbPool, port: u16) {
 
     let app = Router::new()
         .nest("/api", api)
-        .fallback_service(ServeDir::new("frontend"));
+        .fallback(spa_fallback);
 
     let addr = format!("0.0.0.0:{}", port);
     println!("Slate server running on http://{}", addr);

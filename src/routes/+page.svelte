@@ -136,7 +136,7 @@ addingColumn = false
     </div>
   {:else if $loadingBoard}
     <div class="board-header skeleton-header-bar">
-      <div class="skeleton-block" style="width: 140x; height: 18px; border-radius: 5px;"></div>
+      <div class="skeleton-block" style="width: 140px; height: 18px; border-radius: 5px;"></div>
     </div>
     <SkeletonBoard />
   {:else if activeBoard}
@@ -290,7 +290,7 @@ addingColumn = false
 
 .skeleton-block {
   background: var(--border);
-  animation: pulse 1.4x ease-in-out infinite;
+  animation: pulse 1.4s ease-in-out infinite;
 }
 
 @keyframes pulse {
