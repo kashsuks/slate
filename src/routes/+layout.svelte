@@ -17,42 +17,59 @@
     return !localStorage.getItem(`migratedToServer:${url}`)
   }
 
-  onMount(async () => {
-    // Restore dark mode before anything renders
-    const theme = localStorage.getItem('theme')
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark')
-    }
+  async function init(attempt = 0) {
+    try {
+      // Restore dark mode before anything renders
+      const theme = localStorage.getItem('theme')
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark')
+      }
 
-    loadAuthFromStorage()
+      loadAuthFromStorage()
 
-    // Check server connection before any store calls fire
-    await checkConnection()
+      // Check server connection before any store calls fire
+      await checkConnection()
 
-    if (isConnected() && !getToken()) {
-      goto('/login')
-      return
-    }
+      if (isConnected() && !getToken()) {
+        goto('/login')
+        return
+      }
 
-    isOnboarding = window.location.pathname.startsWith('/onboarding')
-    if (isOnboarding) {
+      isOnboarding = window.location.pathname.startsWith('/onboarding')
+      if (isOnboarding) {
+        ready = true
+        return
+      }
+      const done = await isOnboardingComplete()
+      if (!done) {
+        goto('/onboarding')
+        isOnboarding = true
+      } else {
+        await loadTools()
+      }
+
+      // show the migration modal if first time connecting to this server
+      if (needsMigration()) {
+        showMigration = true
+      }
+
       ready = true
-      return
+    } catch (e) {
+      // In standalone (Tauri) mode, the very first invoke() calls can lose a
+      // startup race against Rust's .setup() (which opens the sqlite db and
+      // calls app.manage() before commands relying on that state work). This
+      // is more common on a slow first run - retry briefly instead of
+      // leaving the app on a blank screen.
+      if (attempt < 10) {
+        setTimeout(() => init(attempt + 1), 200)
+      } else {
+        console.error('Failed to initialize app', e)
+      }
     }
-    const done = await isOnboardingComplete()
-    if (!done) {
-      goto('/onboarding')
-      isOnboarding = true
-    } else {
-      await loadTools()
-    }
+  }
 
-    // show the migration modal if first time connecting to this server
-    if (needsMigration()) {
-      showMigration = true
-    }
-
-    ready = true
+  onMount(() => {
+    init()
   })
 
   function onMigrationDone() {
