@@ -2,14 +2,20 @@
   import '../app.css'
   import { onMount } from 'svelte'
   import { goto } from '$app/navigation'
+  import { page } from '$app/stores'
   import { isOnboardingComplete, loadTools } from '$lib/stores/config'
   import { checkConnection, isConnected, getServerUrl } from '$lib/api'
   import { loadAuthFromStorage, getToken } from '$lib/stores/auth'
   import MigrationModal from '$lib/components/MigrationModal.svelte'
 
   let ready = false
-  let isOnboarding = false
   let showMigration = false
+
+  // Reactive to the current route rather than a one-time onMount snapshot -
+  // otherwise navigating away from /onboarding (client-side, no reload)
+  // leaves this stuck true and the app renders outside .app-shell, which
+  // the main app layout depends on for sizing (looks like a blank screen).
+  $: isOnboarding = $page.url.pathname.startsWith('/onboarding')
 
   function needsMigration(): boolean {
     const url = getServerUrl()
@@ -35,7 +41,6 @@
         return
       }
 
-      isOnboarding = window.location.pathname.startsWith('/onboarding')
       if (isOnboarding) {
         ready = true
         return
@@ -43,7 +48,6 @@
       const done = await isOnboardingComplete()
       if (!done) {
         goto('/onboarding')
-        isOnboarding = true
       } else {
         await loadTools()
       }
